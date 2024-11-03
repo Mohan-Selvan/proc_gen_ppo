@@ -44,7 +44,7 @@ class GameWorld(gym.Env):
         self.num_tile_actions = num_tile_actions
 
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
-        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions * self.mask_size[0] * self.mask_size[1]])
+        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions] * (self.mask_size[0] * self.mask_size[1]))
 
         # Observation space: (4 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
@@ -115,7 +115,7 @@ class GameWorld(gym.Env):
 
         self.reset_count += 1
         
-        print(f"Game reset : {self.reset_count}")
+        # print(f"Game reset : {self.reset_count}")
 
         observation = self._get_obs()
         info = self._get_info()
@@ -125,12 +125,7 @@ class GameWorld(gym.Env):
     def step(self, action):
 
         # Convert the flat action back to a 2D action mask
-        action_mask = np.zeros((self.mask_size[0], self.mask_size[1]), dtype=int)
-        for i in range(self.mask_size[0]):
-            for j in range(self.mask_size[1]):
-                action_idx = action % self.num_tile_actions
-                action_mask[i][j] = action_idx
-                action //= self.num_tile_actions
+        action_mask = np.array(action).reshape((self.mask_size[0], self.mask_size[1]))
 
         # print(action_mask_2d.shape)
         # print(action_mask_2d)
@@ -285,10 +280,10 @@ class GameWorld(gym.Env):
                     color = constants.COLOR_BLACK
                 elif(mask_value == constants.TILE_ACTION_PLACE_EMPTY_SPACE):
                     color = constants.COLOR_RED
-                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 8)
+                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
                 elif(mask_value == constants.TILE_ACTION_PLACE_PLATFORM):
                     color = constants.COLOR_GREEN
-                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 8)
+                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
                 
 
