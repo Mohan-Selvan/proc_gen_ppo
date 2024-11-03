@@ -65,24 +65,34 @@ env = game_world.GameWorld(width=constants.GRID_SIZE[0],
                            num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL
                            )
 
+env_check = False
+train = False
+test = False
 
-# env_checker.check_env(env=env, warn=True, skip_render_check=False)
+if(env_check):
+    env_checker.check_env(env=env, warn=True, skip_render_check=False)
 
-# Create a directory to save logs
-log_dir = "./ppo_training_logs"
-os.makedirs(log_dir, exist_ok=True)
 
-# Define the PPO model with a CNN policy for processing grid-based inputs
-model = PPO("CnnPolicy", env, verbose=1)
+if(train):
 
-# # Train the model
-model.learn(total_timesteps=10000, progress_bar=True)
+    # Create a directory to save logs
+    log_dir = "./ppo_training_logs"
+    os.makedirs(log_dir, exist_ok=True)
 
-# Save the model
-model.save(model_file_path)
+    # Define the PPO model with a CNN policy for processing grid-based inputs
+    model = PPO("CnnPolicy", env, verbose=1)
 
-# Load the model later for evaluation
-loaded_model = PPO.load(model_file_path)
+    # # Train the model
+    model.learn(total_timesteps=10000, progress_bar=True)
 
-# Evaluate the model
-evaluate_model(loaded_model, env)
+    # Save the model
+    model.save(model_file_path)
+
+
+if(test):
+
+    # Load the model later for evaluation
+    loaded_model = PPO.load(model_file_path)
+
+    # Evaluate the model
+    evaluate_model(loaded_model, env)
