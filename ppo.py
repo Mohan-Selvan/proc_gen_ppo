@@ -65,6 +65,7 @@ env = game_world.GameWorld(width=constants.GRID_SIZE[0],
                            num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL
                            )
 
+
 # env_checker.check_env(env=env, warn=True, skip_render_check=False)
 
 # Create a directory to save logs
@@ -75,7 +76,7 @@ os.makedirs(log_dir, exist_ok=True)
 model = PPO("CnnPolicy", env, verbose=1)
 
 # # Train the model
-model.learn(total_timesteps=1000)
+model.learn(total_timesteps=10000, progress_bar=True)
 
 # Save the model
 model.save(model_file_path)
