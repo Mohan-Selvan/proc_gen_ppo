@@ -74,14 +74,14 @@ if __name__ == "__main__":
                             is_path_define_mode = False
 
                     if(not is_path_define_mode):
-                        with open('path_list', 'wb') as fp:
+                        with open('./saves/path_list', 'wb') as fp:
                             pickle.dump(env.player_path, fp)
 
                         print("Path define mode exited, Saving path as 'path_list'")
 
                     if(event.key == pygame.K_l):
                         is_path_define_mode = False
-                        with open ('path_list', 'rb') as fp:
+                        with open ('./saves/path_list', 'rb') as fp:
                             path_list = pickle.load(fp)
                             env.set_player_path(path_list)
                             print("Path define mode exited, Existing path loaded from 'path_list'")
@@ -120,6 +120,12 @@ if __name__ == "__main__":
                         print(obs)
                         print(f"Act : {env.action_space}")
 
+                    if(event.key == pygame.K_3):
+                        percent, path = env.calculate_reachability(jump_length=2, jump_height=2, max_distance=6)
+                        print(f"Reachability : {percent}")
+                        env.coverable_path = path
+
+
 
                     
                     if(event.key == pygame.K_k):
@@ -139,13 +145,13 @@ if __name__ == "__main__":
                 if(env.is_position_valid(grid_pos)):
                     env.grid[grid_pos] = 0 if env.grid[grid_pos] == 1 else 1
 
-        env._update(flip_display= False)
+        env._update(flip_display= True)
 
         cell_draw_size = constants.CELL_DRAW_SIZE
-        for cell in covered_path:
-            pygame.draw.rect(env.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 0)
+        # for cell in covered_path:
+        #     pygame.draw.rect(env.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 0)
 
-        pygame.display.flip()
+        # pygame.display.flip()
 
         if(is_quit):
             break
