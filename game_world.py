@@ -165,7 +165,7 @@ class GameWorld(gym.Env):
             reward = -10000
             return reward
 
-        reward, self.coverable_path = self.calculate_reachability(jump_length=3, jump_height=3, max_distance=6)
+        reward, self.coverable_path = self.calculate_reachability(max_distance=6)
 
         # for x in range(0, self.width):
         #     for y in range(0, self.height):
@@ -302,79 +302,32 @@ class GameWorld(gym.Env):
         #print("Closing game")    
         pass
 
-    # def calculate_reachability(self, player_path, jump_length, jump_height, max_distance=5):
-        
-    #     def can_stand_on(cell):
-    #         below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
-    #         if(not self.is_position_valid(below_cell)):
-    #             return False
-    #         return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
-
-    #     height, width = self.grid.shape
-    #     reachable_cells = set()
-    #     reachable_path_cells = set()  # Cells on the player path that can be reached
-    #     start_cell = player_path[0]  # Starting point of the player path
-    #     directions = [
-    #         (-3, -3), (-2, -3), (-1, -3), (0, -3), (1, -3), (2, -3), (3, -3),
-    #         (-3, -2), (-2, -2), (-1, -2), (0, -2), (1, -2), (2, -2), (3, -2),
-    #         (-3, -1), (-2, -1), (-1, -1), (0, -1), (1, -1), (2, -1), (3, -1),
-    #         (-3,  0), (-2,  0), (-1,  0), (0,  0), (1,  0), (2,  0), (3,  0),
-    #         (-3,  1), (-2,  1), (-1,  1), (0,  1), (1,  1), (2,  1), (3,  1),
-    #         (-3,  2), (-2,  2), (-1,  2), (0,  2), (1,  2), (2,  2), (3,  2),
-    #         (-3,  3), (-2,  3), (-1,  3), (0,  3), (1,  3), (2,  3), (3,  3),
-    #         ]  # Left, Right, Down for basic movement
-    #     jumps = [(dx, dy) for dx in range(-jump_length, jump_length + 1) 
-    #             for dy in range(1, jump_height + 1) if abs(dx) + abs(dy) <= jump_length + jump_height]
-
-    #     # BFS queue
-    #     queue = deque([(start_cell[0], start_cell[1], 0)])  # (x, y, distance_from_path)
-    #     reachable_cells.add(start_cell)
-
-    #     while queue:
-    #         x, y, distance = queue.popleft()
-            
-    #         # If the current cell is on the player path within bounds, add it to reachable_path_cells
-    #         if (x, y) in player_path and distance <= max_distance:
-    #             reachable_path_cells.add((x, y))
-
-    #         for dx, dy in directions:
-    #             nx, ny = x + dx, y + dy
-    #             if self.is_position_valid((nx, ny)) and can_stand_on((nx, ny)):
-    #                 new_cell = (nx, ny)
-    #                 if new_cell not in reachable_cells:
-    #                     reachable_cells.add(new_cell)
-    #                     queue.append((nx, ny, distance + 1))
-
-    #         # # Horizontal and downward movement
-    #         # for dx, dy in directions:
-    #         #     nx, ny = x + dx, y + dy
-    #         #     if 0 <= nx < width and 0 <= ny < height and self.grid[ny, nx] == 0:
-    #         #         new_cell = (nx, ny)
-    #         #         if new_cell not in reachable_cells:
-    #         #             reachable_cells.add(new_cell)
-    #         #             queue.append((nx, ny, distance + 1))
-
-    #         # # Jumping: try all valid jump positions
-    #         # for dx, dy in jumps:
-    #         #     nx, ny = x + dx, y - dy
-    #         #     if 0 <= nx < width and 0 <= ny < height and self.grid[ny, nx] == 0:
-    #         #         # Ensure the entire jump path is empty
-    #         #         if all(self.grid[y - (j * dy) // (abs(dy) if dy != 0 else 1), x + (j * dx) // (abs(dx) if dx != 0 else 1)] == 0 for j in range(1, abs(dy) + 1)):
-    #         #             new_cell = (nx, ny)
-    #         #             if new_cell not in reachable_cells:
-    #         #                 reachable_cells.add(new_cell)
-    #         #                 queue.append((nx, ny, distance + 1))
-        
-    #     # Calculate reachability percentage
-    #     reachable_path_count = sum(1 for cell in player_path if cell in reachable_path_cells)
-    #     reachability_percentage = (reachable_path_count / len(player_path)) * 100
-
-    #     return reachability_percentage, list(reachable_cells)
-
-    def calculate_reachability(self, jump_length, jump_height, max_distance=7):
+    def calculate_reachability(self, max_distance=3):
 
         def manhattan_distance(x1, y1, x2, y2):
             return abs(x1 - x2) + abs(y1 - y2)
+        
+        def is_any_route_clear(cell, routes):
+            is_clear = False
+            for route in routes:
+                if(are_route_cells_clear(cell, route)):
+                    is_clear = True
+                    break
+            return is_clear
+        
+        def are_route_cells_clear(cell, directions):
+            for (dx, dy) in directions:
+                nx, ny = (cell[0] + dx, cell[1] + dy)
+                new_cell = (nx, ny)
+
+                if(not self.is_position_valid(new_cell)):
+                    return False
+
+                if(not (self.grid[new_cell] == constants.GRID_EMPTY_SPACE)):
+                    return False
+
+            return True
+
         
         def can_stand_on(cell):
             below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
@@ -390,18 +343,171 @@ class GameWorld(gym.Env):
         reachable_path_cells = set()  # Cells near the player path that can be reached
         start_cell = player_path[0]
 
-        directions = [
-            (-3, -3), (-2, -3), (-1, -3), (0, -3), (1, -3), (2, -3), (3, -3),
-            (-3, -2), (-2, -2), (-1, -2), (0, -2), (1, -2), (2, -2), (3, -2),
-            (-3, -1), (-2, -1), (-1, -1), (0, -1), (1, -1), (2, -1), (3, -1),
-            (-3,  0), (-2,  0), (-1,  0), (0,  0), (1,  0), (2,  0), (3,  0),
-            (-3,  1), (-2,  1), (-1,  1), (0,  1), (1,  1), (2,  1), (3,  1),
-            (-3,  2), (-2,  2), (-1,  2), (0,  2), (1,  2), (2,  2), (3,  2),
-            (-3,  3), (-2,  3), (-1,  3), (0,  3), (1,  3), (2,  3), (3,  3),
-            ]  # Left, Right, Down for basic movement
+        # directions_and_routes = [
+        #     ((-3, -3), []), ((-2, -3), []), ((-1, -3), []), ((0, -3), []), ((1, -3), []), ((2, -3), []), ((3, -3), []),
+        #     ((-3, -2), []), ((-2, -2), []), ((-1, -2), []), ((0, -2), []), ((1, -2), []), ((2, -2), []), ((3, -2), []),
+        #     ((-3, -1), []), ((-2, -1), []), ((-1, -1), []), ((0, -1), []), ((1, -1), []), ((2, -1), []), ((3, -1), []),
+        #     ((-3,  0), []), ((-2,  0), []), ((-1,  0), []), ((0,  0), []), ((1,  0), []), ((2,  0), []), ((3,  0), []),
+        #     ((-3,  1), []), ((-2,  1), []), ((-1,  1), []), ((0,  1), []), ((1,  1), []), ((2,  1), []), ((3,  1), []),
+        #     ((-3,  2), []), ((-2,  2), []), ((-1,  2), []), ((0,  2), []), ((1,  2), []), ((2,  2), []), ((3,  2), []),
+        #     ((-3,  3), []), ((-2,  3), []), ((-1,  3), []), ((0,  3), []), ((1,  3), []), ((2,  3), []), ((3,  3), []),
+        #     ]  # Left, Right, Down for basic movement
 
-        jumps = [(dx, -dy) for dx in range(-jump_length, jump_length + 1) 
-                for dy in range(1, jump_height + 1) if abs(dx) + abs(dy) <= jump_length + jump_height]
+        directions_and_routes = [
+            # ((-3, -3), [[]]), 
+            
+            ((-2, -3), [
+                [(0, -1), (0, -2), (0, -3), (-1, -3)]
+            ]), 
+            
+            ((-1, -3), [
+                [(0, -1), (0, -2), (0, -3)]
+            ]),
+            
+            # ((0, -3), [[]]), 
+            
+            ((1, -3), [
+                [(0, -1), (0, -2), (0, -3)]
+            ]),
+            
+            ((2, -3), [
+                [(0, -1), (0, -2), (0, -3), (1, -3)]
+            ]), 
+            
+            # ((3, -3), [[]]),
+            
+            # ((-3, -2), [[]]),
+            
+            ((-2, -2), [
+                [(0, -1), (0, -2), (0, -3), (-1, -3), (-2, -3)]
+            ]), 
+            
+            ((-1, -2), [
+                [(0, -1), (0, -2)]
+            ]), 
+            
+            # ((0, -2), [[]]), 
+            
+            
+            ((1, -2), [
+                [(0, -1), (0, -2)]
+            ]), 
+            
+            ((2, -2), [
+                [(0, -1), (0, -2), (0, -3), (1, -3), (2, -3)]
+            ]),
+            
+            # ((3, -2), [[]]),
+            # ((-3, -1), [[]]), 
+            
+            ((-2, -1), [
+                [(0, -1), (0, -2), (-1, -2), (-2, -2)]
+            ]), 
+            
+            ((-1, -1), [
+                [(0, -1)]
+            ]), 
+            
+            # ((0, -1), [[]]), 
+            
+            ((1, -1), [
+                [(0, -1)]
+            ]), 
+            
+            ((2, -1), [
+                [(0, -1), (0, -2), (1, -2), (2, -2)]
+            ]), 
+            
+            # ((3, -1), [[]]),
+            
+
+            ((-3,  0), [
+                [(0, -1), (-1, -1), (-1, -2), (-2, -2), (-2, -1), (-3, -1)]
+            ]), 
+            
+            ((-2,  0), [
+                [(0, -1), (-1, -1), (-2, -1)]
+            ]), 
+            
+            ((-1,  0), [[(-1, 0)]]), 
+            
+            ((0,  0), [[(0, 0)]]), 
+            
+            ((1,  0), [[(1, 0)]]), 
+            
+            ((2,  0), [
+                [(0, -1), (1, -1), (2, -1)]
+            ]), 
+            
+            ((3,  0), [
+                [(0, -1), (1, -1), (1, -2), (2, -2), (2, -1), (3, -1)]
+            ]),
+
+            # ((-3,  1), [[]]), 
+            
+            ((-2,  1), [
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0)]
+            ]), 
+            
+            ((-1,  1), [
+                [(-1, 0)]
+            ]), 
+            
+            # ((0,  1), [[]]), 
+            
+            ((1,  1), [
+                [(1, 0)]
+            ]),
+            
+            ((2,  1), [
+                [(0, -1), (1, -1), (2, -1), (2, 0)]
+            ]), 
+            
+            # ((3,  1), [[]]),
+            # ((-3,  2), [[]]), 
+            
+            
+            ((-2,  2), [
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1)]
+            ]),
+            
+            ((-1,  2), [
+                [(-1, 0), (-1, 1)]
+            ]),
+             
+            # ((0,  2), [[]]), 
+            
+            ((1,  2), [
+                [(1, 0), (1, 1)]
+            ]), 
+            
+            ((2,  2), [
+                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1)]
+            ]),
+            
+            # ((3,  2), [[]]),
+            # ((-3,  3), [[]]), 
+            
+            ((-2,  3), [
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1), (-2, 2)]
+            ]), 
+            
+            ((-1,  3), [
+                [(-1, 0), (-1, 1), (-1, 2)]
+            ]), 
+            
+            # ((0,  3), [[]]), 
+            
+            ((1,  3), [
+                [(1, 0), (1, 1), (1, 2)]
+            ]),
+            
+            ((2,  3), [
+                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1), (2, 2)]
+            ]),
+            
+            # ((3,  3), [[]]),
+            ]
 
         # Priority queue for A* search
         open_set = [(0, start_cell)]
@@ -416,59 +522,45 @@ class GameWorld(gym.Env):
             _, current = heapq.heappop(open_set)
             x, y = current
             
-            # Check if the current cell is within the max distance from any cell on the player path
-            if within_distance(current, max_distance):
-                reachable_path_cells.add(current)
+            for direction, routes in directions_and_routes:
+                dx, dy = direction
+                nx, ny = (x + dx, y + dy)
+                new_cell = (nx, ny)
 
-            # Add current cell to reachable cells
-            reachable_cells.add(current)
+                
+                if((new_cell == current) or (self.grid[current] == constants.GRID_PLATFORM)):
+                    continue
 
-            # Check for gravity: move down if there’s no platform below
-            # down_cell = self.get_cell_in_direction(current, direction=Direction.DOWN, restrict_boundary=False)
-            # if self.is_position_valid(down_cell) and grid[y + 1, x] == constants.GRID_EMPTY_SPACE:
-            #     down_cell = (x, y + 1)
-            #     if down_cell not in reachable_cells:
-            #         g_score[down_cell] = g_score[current] + 1
-            #         heapq.heappush(open_set, (g_score[down_cell] + manhattan_distance(x, y + 1, *start_cell), down_cell))
-            #         reachable_cells.add(down_cell)
-            #         continue  # Only continue downward if there's no platform
+                if(not (self.is_position_valid(new_cell) and within_distance(new_cell, max_distance))):
+                    continue
+                
+                if(not (can_stand_on(new_cell))):
+                   continue
 
-            # If standing, allow horizontal movement and jumps
-            if can_stand_on(current):
-                # Horizontal movement
-                for dx, dy in directions:  # Left and Right
-                    nx, ny = x + dx, y + dy
-                    new_cell = (nx, ny)
-                    if self.is_position_valid(new_cell) and can_stand_on(new_cell) and within_distance(new_cell, max_distance):
-                        if ((new_cell not in reachable_cells) or (g_score[new_cell] > (g_score[current] + 1))):
-                            g_score[new_cell] = g_score[current] + 1
-                            heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
-                            reachable_cells.add(new_cell)
+                if(not is_any_route_clear(current, routes)):
+                    continue
 
-            #     # Jumping
-            #     for dx, dy in jumps:
-            #         nx, ny = x + dx, y + dy
-            #         if 0 <= nx < width and 0 <= ny < height and grid[ny, nx] == 0:
-            #             # Ensure all cells along the jump path are empty
-            #             if all(grid[y + j * dy // abs(dy), x + j * dx // abs(dx)] == 0 for j in range(1, abs(dy) + 1)):
-            #                 new_cell = (nx, ny)
-            #                 if new_cell not in reachable_cells or g_score[new_cell] > g_score[current] + 1:
-            #                     g_score[new_cell] = g_score[current] + 1
-            #                     heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
-            #                     reachable_cells.add(new_cell)
+                # print(f"Current : {current}, New cell : {new_cell}, Direction : {direction}, Route : {routes}")
 
-        # Calculate reachability percentage
-        reachable_path_count = sum(1 for cell in player_path if within_distance(cell, max_distance) and cell in reachable_path_cells)
-        reachability_percentage = (reachable_path_count / len(player_path)) * 100
+                if ((new_cell not in reachable_cells)):# or (g_score[new_cell] > (g_score[current] + 1))):
+                    g_score[new_cell] = g_score[current] + 1
+                    heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
+                    reachable_cells.add(new_cell)
 
         # Find the highest index of a player path cell that is close to any reachable cell
         highest_reached_index = -1
         for reachable_cell in reachable_cells:
-            for i, path_cell in enumerate(player_path):
-                if manhattan_distance(reachable_cell[0], reachable_cell[1], path_cell[0], path_cell[1]) <= max_distance:
-                    highest_reached_index = max(highest_reached_index, i)
+                for direction, routes in directions_and_routes:
+                    new_cell = (reachable_cell[0] + direction[0], reachable_cell[1] + direction[1])
+                    if(new_cell in player_path):
+                        if(is_any_route_clear(reachable_cell, routes)):
+                            for i, path_cell in enumerate(player_path):
+                                if(path_cell == new_cell):
+                                    highest_reached_index = max(highest_reached_index, i)
+
+                # if manhattan_distance(reachable_cell[0], reachable_cell[1], path_cell[0], path_cell[1]) <= max_distance:
+                #     highest_reached_index = max(highest_reached_index, i)
 
         # Calculate reachability percentage based on the highest reachable index
         reachability_percentage = (highest_reached_index / (len(player_path) - 1)) if highest_reached_index >= 0 else 0
-
-        return reachability_percentage, list(reachable_path_cells)
+        return reachability_percentage, list(reachable_cells)

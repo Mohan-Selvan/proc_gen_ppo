@@ -121,7 +121,7 @@ if __name__ == "__main__":
                         print(f"Act : {env.action_space}")
 
                     if(event.key == pygame.K_3):
-                        percent, path = env.calculate_reachability(jump_length=2, jump_height=2, max_distance=6)
+                        percent, path = env.calculate_reachability(max_distance=6)
                         print(f"Reachability : {percent}")
                         env.coverable_path = path
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
                 position = pygame.mouse.get_pos()
                 grid_pos = (position[0] // cell_draw_size, position[1] // cell_draw_size)
 
-                print(position, "  ", grid_pos)
+                print(f"Click grid pos : {grid_pos}")
 
                 if(env.is_position_valid(grid_pos)):
                     env.grid[grid_pos] = 0 if env.grid[grid_pos] == 1 else 1

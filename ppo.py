@@ -152,5 +152,5 @@ def test():
 
 if(__name__ == "__main__"):
     # check_env()
-    # train()
+    train()
     test()
