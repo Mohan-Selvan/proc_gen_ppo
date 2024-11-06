@@ -126,12 +126,12 @@ def train():
     reward_callback = RewardLoggingCallback(log_dir)
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
-    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.95, n_epochs=10)
+    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.95, n_epochs=50)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=False)
+    model.learn(total_timesteps=10000, progress_bar=True, callback=reward_callback, reset_num_timesteps=False)
 
     print("Training : Complete")
 
