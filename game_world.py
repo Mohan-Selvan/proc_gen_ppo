@@ -170,7 +170,7 @@ class GameWorld(gym.Env):
 
         reward, self.coverable_path = self.calculate_reachability(max_distance=6)
 
-        reward *= 100
+        reward *= 1000
 
         # Checking if lava tiles are surrounded with proper cells
         for x in range(0, self.width):
@@ -182,11 +182,11 @@ class GameWorld(gym.Env):
                         if(not self.is_position_valid(neighbor_cell)):
                             continue
                         if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
-                            reward -= 3
+                            reward -= 1
                             break
 
         lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
-        reward = reward - (lava_tile_count - 3)
+        reward = reward - (min(0, lava_tile_count - 10) * 0.5)
 
         # for x in range(0, self.width):
         #     for y in range(0, self.height):
