@@ -111,7 +111,7 @@ class GameWorld(gym.Env):
         super().reset(seed=seed)
         
         self.frame_count = 0
-        self.grid = np.full([self.width, self.height], constants.GRID_EMPTY_SPACE, np.uint8)
+        self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
         self.player_pos = self.start_pos
         self.player_path_index = 0
 
