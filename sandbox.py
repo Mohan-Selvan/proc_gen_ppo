@@ -143,7 +143,16 @@ if __name__ == "__main__":
                 print(f"Click grid pos : {grid_pos}")
 
                 if(env.is_position_valid(grid_pos)):
-                    env.grid[grid_pos] = 0 if env.grid[grid_pos] == 1 else 1
+                    env.grid[grid_pos] = constants.GRID_EMPTY_SPACE if env.grid[grid_pos] == constants.GRID_PLATFORM else constants.GRID_PLATFORM
+
+            elif(event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed(3)[2]):
+                position = pygame.mouse.get_pos()
+                grid_pos = (position[0] // cell_draw_size, position[1] // cell_draw_size)
+
+                print(f"Click grid pos : {grid_pos}")
+
+                if(env.is_position_valid(grid_pos)):
+                    env.grid[grid_pos] = constants.GRID_EMPTY_SPACE if env.grid[grid_pos] == constants.GRID_LAVA else constants.GRID_LAVA
 
         env._update(flip_display= True)
 

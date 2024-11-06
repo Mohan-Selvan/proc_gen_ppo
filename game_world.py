@@ -27,8 +27,8 @@ class GameWorld(gym.Env):
         self.frame_count = 0
         self.grid = np.zeros([self.width, self.height], np.uint8)
 
-        self.start_pos = (1, self.height - 2)
-        self.end_pos = (self.width - 2, 10)
+        self.start_pos = (1, self.height // 2)
+        self.end_pos = (self.width - 2, self.height // 2)
 
         self.player_pos = self.start_pos
         self.coverable_path = []
@@ -200,6 +200,8 @@ class GameWorld(gym.Env):
                         self.grid[grid_pos] = constants.GRID_EMPTY_SPACE
                     elif(mask_2d[x, y] == constants.TILE_ACTION_PLACE_PLATFORM): 
                         self.grid[grid_pos] = constants.GRID_PLATFORM
+                    elif(mask_2d[x, y] == constants.TILE_ACTION_PLACE_LAVA): 
+                        self.grid[grid_pos] = constants.GRID_LAVA
       
     def is_position_valid(self, position):
         x, y = position
@@ -255,15 +257,17 @@ class GameWorld(gym.Env):
         for x in range(0, self.grid.shape[0]):
             for y in range(0, self.grid.shape[1]):
                 if  (self.grid[x][y] == constants.GRID_EMPTY_SPACE):
-                    pygame.draw.rect(self.display, constants.COLOR_WHITE, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
+                    pygame.draw.rect(self.display, constants.COLOR_BLACK, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
                 elif(self.grid[x][y] == constants.GRID_PLATFORM):
                     pygame.draw.rect(self.display, constants.COLOR_BROWN, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
+                elif(self.grid[x][y] == constants.GRID_LAVA):
+                    pygame.draw.rect(self.display, constants.COLOR_RED, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
                 else:
                     pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
         pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
         pygame.draw.rect(self.display, constants.COLOR_GREEN, rect= pygame.Rect(self.start_pos[0] * cell_draw_size, self.start_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
-        pygame.draw.rect(self.display, constants.COLOR_RED, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
         # Render ghost kernel
         posX, posY = self.player_pos
@@ -284,13 +288,16 @@ class GameWorld(gym.Env):
                     color = constants.COLOR_RED
                     pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
                 elif(mask_value == constants.TILE_ACTION_PLACE_PLATFORM):
-                    color = constants.COLOR_GREEN
+                    color = constants.COLOR_BROWN
+                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
+                elif(mask_value == constants.TILE_ACTION_PLACE_LAVA):
+                    color = constants.COLOR_RED
                     pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
 
                 
 
         for cell in self.player_path:
-            pygame.draw.rect(self.display, constants.COLOR_RED, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 0)
+            pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 0)
 
         for cell in self.coverable_path:
             pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 0)
@@ -528,7 +535,7 @@ class GameWorld(gym.Env):
                 new_cell = (nx, ny)
 
                 
-                if((new_cell == current) or (self.grid[current] == constants.GRID_PLATFORM)):
+                if((new_cell == current) or (self.grid[current] == constants.GRID_PLATFORM) or (self.grid[current] == constants.GRID_LAVA)):
                     continue
 
                 if(not (self.is_position_valid(new_cell) and within_distance(new_cell, max_distance))):
