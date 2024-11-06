@@ -46,6 +46,7 @@ def evaluate_model(model, env, num_episodes=10):
 
         total_reward += episode_reward
         print(f"Episode {episode + 1} reward: {episode_reward}")
+        env.save_screen_image(f"./saves/levels/test_iter_{(episode + 1)}.png")
 
     average_reward = total_reward / num_episodes
     print(f"Average reward over {num_episodes} episodes: {average_reward}")
@@ -125,12 +126,12 @@ def train():
     reward_callback = RewardLoggingCallback(log_dir)
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
-    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.95, n_epochs=50)
+    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.95, n_epochs=10)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback)
+    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=False)
 
     print("Training : Complete")
 

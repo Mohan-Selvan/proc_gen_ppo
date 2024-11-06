@@ -571,3 +571,7 @@ class GameWorld(gym.Env):
         # Calculate reachability percentage based on the highest reachable index
         reachability_percentage = (highest_reached_index / (len(player_path) - 1)) if highest_reached_index >= 0 else 0
         return reachability_percentage, list(reachable_cells)
+
+    def save_screen_image(self, full_path):
+        pygame.image.save(self.display, full_path)
+        print(f"Saved image : {full_path}")
