@@ -125,9 +125,11 @@ if __name__ == "__main__":
                         print(f"Reachability : {percent}")
                         env.coverable_path = path
 
+                    if(event.key == pygame.K_4):
+                        env.set_player_path(env.generate_player_path(randomness=0.2))
+                        print("Generated player path")
 
 
-                    
                     if(event.key == pygame.K_k):
 
                         covered_path = env.find_path(env.start_pos, env.end_pos)

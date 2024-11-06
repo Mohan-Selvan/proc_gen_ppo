@@ -1,6 +1,8 @@
 import pygame
 import numpy as np
 import math
+import random
+
 import constants
 
 import heapq
@@ -54,7 +56,7 @@ class GameWorld(gym.Env):
         )
 
         self.set_player_path(player_path)
-        self.reset()
+        # self.reset()
 
     
     def _get_obs(self):
@@ -112,6 +114,11 @@ class GameWorld(gym.Env):
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         
         super().reset(seed=seed)
+
+        # Seeding randoms
+        np.random.seed(seed)
+        random.seed(seed)
+
         
         self.frame_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
@@ -119,7 +126,9 @@ class GameWorld(gym.Env):
         self.player_path_index = 0
 
         self.reset_count += 1
-        
+
+        self.set_player_path(self.generate_player_path(randomness=0.15))
+
         # print(f"Game reset : {self.reset_count}")
 
         observation = self._get_obs()
@@ -264,7 +273,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.player_pos = self.start_pos
-        self.max_frame_count = (len(self.player_path)) * self.iterations_per_game
+        self.max_frame_count = (len(self.player_path) - 1) * self.iterations_per_game
 
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
@@ -592,6 +601,51 @@ class GameWorld(gym.Env):
         # Calculate reachability percentage based on the highest reachable index
         reachability_percentage = (highest_reached_index / (len(player_path) - 1)) if highest_reached_index >= 0 else 0
         return reachability_percentage, list(reachable_cells)
+
+    def generate_player_path(self, randomness):
+        
+        def get_neighbors(x, y, visited):
+            """Get valid neighboring cells (up, down, left, right) that aren't visited."""
+            neighbors = []
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Left, Right, Up, Down
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height and (nx, ny) not in visited:
+                    neighbors.append((nx, ny))
+            return neighbors
+        
+        path = [self.start_pos]
+        visited = set(path)
+        current = self.start_pos
+        
+        while current != self.end_pos:
+            # Determine neighbors and choose one based on complexity
+            neighbors = get_neighbors(*current, visited)
+            
+            if not neighbors:
+                # Backtrack if no unvisited neighbors (should be rare with proper parameters)
+                path.pop()
+                if not path:
+                    raise ValueError("No path found; consider lower complexity or different start/end.")
+                current = path[-1]
+                continue
+            
+            # Select a neighbor based on complexity setting
+            if random.random() < randomness:
+                # High complexity: shuffle and choose any unvisited neighbor
+                next_cell = random.choice(neighbors)
+            else:
+                # Low complexity: Move in direction closer to the goal
+                next_cell = min(
+                    neighbors, 
+                    key=lambda cell: abs(cell[0] - self.end_pos[0]) + abs(cell[1] - self.end_pos[1])
+                )
+
+            # Add the chosen cell to the path and mark it as visited
+            path.append(next_cell)
+            visited.add(next_cell)
+            current = next_cell
+        
+        return path
 
     def save_screen_image(self, full_path):
         pygame.image.save(self.display, full_path)
