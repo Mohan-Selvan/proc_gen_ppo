@@ -59,6 +59,9 @@ class GameWorld(gym.Env):
     
     def _get_obs(self):
       
+        normalized_grid = self.grid.copy()
+        normalized_grid = np.round((normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+
         ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
         for cell in self.player_path:
             ohe_grid_player_path[cell] = 1
@@ -78,8 +81,8 @@ class GameWorld(gym.Env):
                     window[x, y] = self.grid[world_pos]
                     window_grid[world_pos] = self.grid[world_pos]
    
-        state = np.stack([self.grid, ohe_grid_player_path, ohe_grid_player_pos, window_grid], axis=0)
-        return state.transpose(1, 2, 0) * 255 # Shape to (grid_size X, grid_size Y, 4 channels)
+        state = np.stack([normalized_grid, ohe_grid_player_path * 255, ohe_grid_player_pos * 255, window_grid * 255], axis=0)
+        return state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
 
         # window_size = (11, 11)
         # window_grid = np.full(window_size, -1, dtype = np.int32)
