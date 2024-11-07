@@ -1,6 +1,5 @@
 from enum import Enum
 
-GRID_SIZE = (36, 36)
 GAME_SIMULATION_SPEED = 30
 
 # WORLD 
@@ -31,6 +30,8 @@ DIRECTIONS = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT, Dir
 
 
 # MODEL
+
+GRID_SIZE = (52, 36)
 STATE_SPACE = (GRID_SIZE[0] * GRID_SIZE[1]) * 4
 ACTION_MASK_SHAPE = (5, 5)
 OBSERVATION_WINDOW_SHAPE = (37, 37)

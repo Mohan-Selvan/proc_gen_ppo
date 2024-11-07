@@ -20,7 +20,7 @@ class GameWorld(gym.Env):
         self.width = width
         self.height = height
 
-        self.screen_resolution_X, self.screen_resolution_Y = 1024, 768
+        self.screen_resolution_X, self.screen_resolution_Y = 1920, 1080
         self.screen_resolution = (self.screen_resolution_X, self.screen_resolution_Y)
 
         self.display = pygame.display.set_mode(self.screen_resolution)
@@ -29,8 +29,8 @@ class GameWorld(gym.Env):
         self.frame_count = 0
         self.grid = np.zeros([self.width, self.height], np.uint8)
 
-        self.start_pos = (1, self.height // 2)
-        self.end_pos = (self.width - 2, self.height // 2)
+        self.start_pos = (7, self.height // 2)
+        self.end_pos = (self.width - 8, self.height // 2)
 
         self.player_path_index = 0
         self.player_pos = self.start_pos
@@ -619,12 +619,15 @@ class GameWorld(gym.Env):
         return reachability_percentage, list(reachable_cells)
 
     def generate_player_path(self, randomness):
-        
+
+        grid_width_indices = (6, self.width - 6)
+        grid_height_indices = (6, self.height - 6)
+
         def get_neighbors(x, y, visited):
             neighbors = []
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Left, Right, Up, Down
                 nx, ny = x + dx, y + dy
-                if 0 <= nx < self.width and 0 <= ny < self.height and (nx, ny) not in visited:
+                if grid_width_indices[0] <= nx <= grid_width_indices[1] and grid_height_indices[0] <= ny <= grid_height_indices[1] and (nx, ny) not in visited:
                     neighbors.append((nx, ny))
             return neighbors
         
