@@ -153,6 +153,6 @@ def test():
     print("Testing : Complete")
 
 if(__name__ == "__main__"):
-    check_env()
+    # check_env()
     # train()
     test()
