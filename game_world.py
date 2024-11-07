@@ -15,7 +15,7 @@ import gymnasium as gym
 
 class GameWorld(gym.Env):
 
-    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions):
+    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions, path_randomness):
 
         self.width = width
         self.height = height
@@ -42,6 +42,7 @@ class GameWorld(gym.Env):
         self.player_path = path_list
         self.max_frame_count = 1000
         self.iterations_per_game = 1
+        self.path_randomness = path_randomness
 
         self.reset_count = 0
 
@@ -132,7 +133,7 @@ class GameWorld(gym.Env):
 
         self.reset_count += 1
 
-        self.set_player_path(self.generate_player_path(randomness=0.10))
+        self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
 
         # print(f"Game reset : {self.reset_count}")
 

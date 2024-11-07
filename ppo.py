@@ -70,7 +70,8 @@ def create_env():
                             player_path=player_path,
                             observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE,
                             mask_shape=constants.ACTION_MASK_SHAPE, 
-                            num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL
+                            num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL,
+                            path_randomness=0.50
                             ) 
     return env
 
@@ -127,12 +128,12 @@ def train():
     reward_callback = RewardLoggingCallback(log_dir)
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
-    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.99, n_epochs=10, seed=2)
+    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.99, n_epochs=100, seed=2)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=10000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
 
     print("Training : Complete")
 
@@ -153,6 +154,6 @@ def test():
     print("Testing : Complete")
 
 if(__name__ == "__main__"):
-    # check_env()
-    # train()
+    check_env()
+    train()
     test()
