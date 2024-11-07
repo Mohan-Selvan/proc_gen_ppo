@@ -41,7 +41,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.max_frame_count = 1000
-        self.iterations_per_game = 1
+        self.iterations_per_game = 3
         self.path_randomness = path_randomness
 
         self.reset_count = 0
@@ -55,7 +55,7 @@ class GameWorld(gym.Env):
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 3), dtype=np.uint8
+            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 4), dtype=np.uint8
         )
 
         self.set_player_path(player_path)
@@ -93,6 +93,7 @@ class GameWorld(gym.Env):
         window_normalized_grid = np.full(window_shape, constants.GRID_PLATFORM, dtype = np.uint8)
         window_ohe_player_path = np.full(window_shape, 0, dtype = np.uint8)
         window_ohe_player_pos = np.full(window_shape, 0, dtype = np.uint8)
+        window_ohe_reachable_points = np.full(window_shape, 0, dtype=np.uint8)
 
         base_pos = (self.player_pos[0] - (math.floor(window_shape[0] / 2)), self.player_pos[1] - math.floor(window_shape[1] / 2))
         for x in range(0, window_shape[0]):
@@ -105,10 +106,12 @@ class GameWorld(gym.Env):
                     window_ohe_player_path[x, y] = 1 
                 if(world_pos == self.player_pos):
                     window_ohe_player_pos[x, y] = 1
+                if(world_pos in self.coverable_path):
+                    window_ohe_reachable_points[x, y] = 1
 
         window_normalized_grid = np.round((window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
    
-        state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255], axis=0)
+        state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255, window_ohe_reachable_points * 255], axis=0)
         obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
         return obs
     

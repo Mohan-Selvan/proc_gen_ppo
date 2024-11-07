@@ -126,7 +126,7 @@ if __name__ == "__main__":
                         env.coverable_path = path
 
                     if(event.key == pygame.K_4):
-                        env.set_player_path(env.generate_player_path(randomness=0.1))
+                        env.set_player_path(env.generate_player_path(randomness=0.05))
                         print("Generated player path")
 
 
