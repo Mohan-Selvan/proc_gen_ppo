@@ -179,23 +179,33 @@ class GameWorld(gym.Env):
 
         reward, self.coverable_path = self.calculate_reachability(max_distance=6)
 
-        reward *= 1000
+        reward *= 10000
 
-        # Checking if lava tiles are surrounded with proper cells
-        for x in range(0, self.width):
-            for y in range(0, self.height):
-                cell = (x, y)
-                if(self.grid[cell] == constants.GRID_LAVA):
-                    for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
-                        neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
-                        if(not self.is_position_valid(neighbor_cell)):
-                            continue
-                        if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
-                            reward -= 1
-                            break
+        # # Checking if lava tiles are surrounded with proper cells
+        # for x in range(0, self.width):
+        #     for y in range(0, self.height):
+        #         cell = (x, y)
 
-        lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
-        reward = reward - (min(0, lava_tile_count - 10) * 0.5)
+        #         is_reduce_reward = False
+
+        #         if(self.grid[cell] == constants.GRID_LAVA):
+        #             for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
+        #                 neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
+        #                 if(not self.is_position_valid(neighbor_cell)):
+        #                     continue
+        #                 if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
+        #                     is_reduce_reward = True
+        #                     break
+                    
+        #             neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
+        #             if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
+        #                 is_reduce_reward = True
+
+        #         if(is_reduce_reward):
+        #             reward -= 1
+
+        # lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
+        # reward = reward - (min(0, lava_tile_count - 10) * 0.5)
 
         # for x in range(0, self.width):
         #     for y in range(0, self.height):
@@ -273,7 +283,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.player_pos = self.start_pos
-        self.max_frame_count = (len(self.player_path) - 1) * self.iterations_per_game
+        self.max_frame_count = (len(self.player_path) - 2) * self.iterations_per_game
 
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
@@ -605,7 +615,6 @@ class GameWorld(gym.Env):
     def generate_player_path(self, randomness):
         
         def get_neighbors(x, y, visited):
-            """Get valid neighboring cells (up, down, left, right) that aren't visited."""
             neighbors = []
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Left, Right, Up, Down
                 nx, ny = x + dx, y + dy
