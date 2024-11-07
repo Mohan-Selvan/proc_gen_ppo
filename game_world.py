@@ -15,7 +15,7 @@ import gymnasium as gym
 
 class GameWorld(gym.Env):
 
-    def __init__(self, width, height, player_path, mask_size = (3, 3), num_tile_actions = 3):
+    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions):
 
         self.width = width
         self.height = height
@@ -32,11 +32,12 @@ class GameWorld(gym.Env):
         self.start_pos = (1, self.height // 2)
         self.end_pos = (self.width - 2, self.height // 2)
 
+        self.player_path_index = 0
         self.player_pos = self.start_pos
         self.coverable_path = []
 
         path_list = [self.start_pos]
-        self.mask = np.full(mask_size, 0, dtype=np.uint8)
+        self.mask = np.full(mask_shape, 0, dtype=np.uint8)
 
         self.player_path = path_list
         self.max_frame_count = 1000
@@ -44,15 +45,16 @@ class GameWorld(gym.Env):
 
         self.reset_count = 0
 
-        self.mask_size = mask_size
+        self.observation_window_shape = observation_window_shape
+        self.mask_shape = mask_shape
         self.num_tile_actions = num_tile_actions
 
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
-        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions] * (self.mask_size[0] * self.mask_size[1]))
+        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions] * (self.mask_shape[0] * self.mask_shape[1]))
 
-        # Observation space: (4 channels, grid_size X, grid_size Y)
+        # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=255, shape=(self.width, self.height, 4), dtype=np.uint8
+            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 3), dtype=np.uint8
         )
 
         self.set_player_path(player_path)
@@ -61,50 +63,53 @@ class GameWorld(gym.Env):
     
     def _get_obs(self):
       
-        normalized_grid = self.grid.copy()
-        normalized_grid = np.round((normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+        # normalized_grid = self.grid.copy()
+        # normalized_grid = np.round((normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
 
-        ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
-        for cell in self.player_path:
-            ohe_grid_player_path[cell] = 1
+        # ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
+        # for cell in self.player_path:
+        #     ohe_grid_player_path[cell] = 1
         
-        ohe_grid_player_pos = np.zeros_like(self.grid, dtype=np.uint8)
-        ohe_grid_player_pos[self.player_pos] = 1
+        # ohe_grid_player_pos = np.zeros_like(self.grid, dtype=np.uint8)
+        # ohe_grid_player_pos[self.player_pos] = 1
 
-        window_size = ((5, 5))
-        window = np.full(window_size, 0, dtype = np.uint8)
-        window_grid = np.full_like(self.grid, 0, dtype = np.uint8)
-
-        base_pos = (self.player_pos[0] - (math.floor(window_size[0] / 2)), self.player_pos[1] - math.floor(window_size[1] / 2))
-        for x in range(0, window_size[0]):
-            for y in range(0, window_size[1]):
-                world_pos = base_pos[0] + x, base_pos[1] + y
-                if(self.is_position_valid(world_pos)):
-                    window[x, y] = self.grid[world_pos]
-                    window_grid[world_pos] = self.grid[world_pos]
-   
-        state = np.stack([normalized_grid, ohe_grid_player_path * 255, ohe_grid_player_pos * 255, window_grid * 255], axis=0)
-        return state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
-
-        # window_size = (11, 11)
-        # window_grid = np.full(window_size, -1, dtype = np.int32)
-        # window_player_path = np.full(window_size, 0, dtype = np.int32)
-        # window_player_pos = np.full(window_size, 0, dtype = np.int32)
+        # window_size = ((5, 5))
+        # window = np.full(window_size, 0, dtype = np.uint8)
+        # window_grid = np.full_like(self.grid, 0, dtype = np.uint8)
 
         # base_pos = (self.player_pos[0] - (math.floor(window_size[0] / 2)), self.player_pos[1] - math.floor(window_size[1] / 2))
         # for x in range(0, window_size[0]):
         #     for y in range(0, window_size[1]):
         #         world_pos = base_pos[0] + x, base_pos[1] + y
         #         if(self.is_position_valid(world_pos)):
-        #             window_grid[x, y] = self.grid[world_pos]
-        #         if(world_pos in self.player_path):
-        #             window_player_path[x, y] = 1 
-        #         if(world_pos == self.player_pos):
-        #             window_player_pos[x, y] = 1       
+        #             window[x, y] = self.grid[world_pos]
+        #             window_grid[world_pos] = self.grid[world_pos]
    
-        # state = np.stack([window_player_path, window_player_pos, window_grid], axis=0)
+        # state = np.stack([normalized_grid, ohe_grid_player_path * 255, ohe_grid_player_pos * 255, window_grid * 255], axis=0)
+        # return state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
 
-        return state
+        window_shape = self.observation_window_shape
+        window_normalized_grid = np.full(window_shape, constants.GRID_PLATFORM, dtype = np.uint8)
+        window_ohe_player_path = np.full(window_shape, 0, dtype = np.uint8)
+        window_ohe_player_pos = np.full(window_shape, 0, dtype = np.uint8)
+
+        base_pos = (self.player_pos[0] - (math.floor(window_shape[0] / 2)), self.player_pos[1] - math.floor(window_shape[1] / 2))
+        for x in range(0, window_shape[0]):
+            for y in range(0, window_shape[1]):
+                world_pos = base_pos[0] + x, base_pos[1] + y
+                
+                if(self.is_position_valid(world_pos)):
+                    window_normalized_grid[x, y] = self.grid[world_pos]
+                if(world_pos in self.player_path):
+                    window_ohe_player_path[x, y] = 1 
+                if(world_pos == self.player_pos):
+                    window_ohe_player_pos[x, y] = 1
+
+        window_normalized_grid = np.round((window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+   
+        state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255], axis=0)
+        obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
+        return obs
     
     def _get_info(self):
         return {
@@ -127,7 +132,7 @@ class GameWorld(gym.Env):
 
         self.reset_count += 1
 
-        self.set_player_path(self.generate_player_path(randomness=0.15))
+        self.set_player_path(self.generate_player_path(randomness=0.10))
 
         # print(f"Game reset : {self.reset_count}")
 
@@ -139,7 +144,7 @@ class GameWorld(gym.Env):
     def step(self, action):
 
         # Convert the flat action back to a 2D action mask
-        action_mask = np.array(action).reshape((self.mask_size[0], self.mask_size[1]))
+        action_mask = np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))
 
         # print(action_mask_2d.shape)
         # print(action_mask_2d)
@@ -179,7 +184,7 @@ class GameWorld(gym.Env):
 
         reward, self.coverable_path = self.calculate_reachability(max_distance=6)
 
-        reward *= 10000
+        reward *= 100
 
         # # Checking if lava tiles are surrounded with proper cells
         # for x in range(0, self.width):
@@ -217,12 +222,12 @@ class GameWorld(gym.Env):
         # reward /= ((self.width * self.height) - len(self.player_path))
         # reward *= 2
 
-        blocks = 0
-        for cell in self.player_path:
-            if(self.grid[cell] == constants.GRID_PLATFORM):
-                blocks += 1
+        # blocks = 0
+        # for cell in self.player_path:
+        #     if(self.grid[cell] == constants.GRID_PLATFORM):
+        #         blocks += 1
 
-        reward += (2 * (1.0 - (blocks / len(self.player_path))))
+        # reward += (2 * (1.0 - (blocks / len(self.player_path))))
 
         return reward
 
