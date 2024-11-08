@@ -213,10 +213,10 @@ class GameWorld(gym.Env):
                         is_reduce_reward = True
 
                 if(is_reduce_reward):
-                    reward -= 1
+                    reward -= 0.2
 
         lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
-        reward = reward - (min(0, lava_tile_count - 10) * 0.5)
+        reward = reward - (min(0, lava_tile_count - 10) * 0.1)
 
         # for x in range(0, self.width):
         #     for y in range(0, self.height):
