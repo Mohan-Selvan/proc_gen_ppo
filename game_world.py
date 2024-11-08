@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 import math
 import random
+import helper
 
 import constants
 
@@ -41,7 +42,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.max_frame_count = 1000
-        self.iterations_per_game = 3
+        self.iterations_per_game = 10
         self.path_randomness = path_randomness
 
         self.reset_count = 0
@@ -113,6 +114,7 @@ class GameWorld(gym.Env):
    
         state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255, window_ohe_reachable_points * 255], axis=0)
         obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
+
         return obs
     
     def _get_info(self):
@@ -314,11 +316,11 @@ class GameWorld(gym.Env):
                 else:
                     pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
-        pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
         pygame.draw.rect(self.display, constants.COLOR_GREEN, rect= pygame.Rect(self.start_pos[0] * cell_draw_size, self.start_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
-        pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
-        # Render ghost kernel
+        # Render action mask placement
         posX, posY = self.player_pos
         cell_draw_size = constants.CELL_DRAW_SIZE
         mask_to_draw = self.mask
@@ -345,8 +347,9 @@ class GameWorld(gym.Env):
 
                 
 
-        for cell in self.player_path:
-            pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 0)
+        for index, cell in enumerate(self.player_path):
+            color = helper.lerp_color(constants.COLOR_GREEN, constants.COLOR_CYAN, index / (len(self.player_path) - 1))
+            pygame.draw.rect(self.display, color, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 0)
 
         for cell in self.coverable_path:
             pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 0)

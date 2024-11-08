@@ -17,3 +17,13 @@ def plot(scores):
     plt.pause(.1)
     #plt.tight_layout()
     plt.savefig("./plot.png")
+
+def lerp(a, b, t):
+    return (a + ((b-a) * t))
+
+def lerp_color(from_color, to_color, t):
+    return (
+        lerp(from_color[0], to_color[0], t),
+        lerp(from_color[1], to_color[1], t),
+        lerp(from_color[2], to_color[2], t)
+    )
