@@ -42,7 +42,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.max_frame_count = 1000
-        self.iterations_per_game = 10
+        self.iterations_per_game = 1
         self.path_randomness = path_randomness
 
         self.reset_count = 0
@@ -138,8 +138,6 @@ class GameWorld(gym.Env):
 
         self.reset_count += 1
 
-        self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
-
         # print(f"Game reset : {self.reset_count}")
 
         observation = self._get_obs()
@@ -179,6 +177,13 @@ class GameWorld(gym.Env):
         self.render(True)
         self.frame_count += 1
 
+        if(terminated or truncated):
+            reachability, _ = self.calculate_reachability(max_distance=6)
+            if(reachability > 0.9):
+                self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
+                print("Randomizing path")        
+
+
         return state, reward, terminated, truncated, self._get_info() 
 
     def get_current_reward(self):
@@ -190,33 +195,31 @@ class GameWorld(gym.Env):
 
         reward, self.coverable_path = self.calculate_reachability(max_distance=6)
 
-        reward *= 100
-
         # Checking if lava tiles are surrounded with proper cells
-        for x in range(0, self.width):
-            for y in range(0, self.height):
-                cell = (x, y)
+        # for x in range(0, self.width):
+        #     for y in range(0, self.height):
+        #         cell = (x, y)
 
-                is_reduce_reward = False
+        #         is_reduce_reward = False
 
-                if(self.grid[cell] == constants.GRID_LAVA):
-                    for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
-                        neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
-                        if(not self.is_position_valid(neighbor_cell)):
-                            continue
-                        if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
-                            is_reduce_reward = True
-                            break
+        #         if(self.grid[cell] == constants.GRID_LAVA):
+        #             for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
+        #                 neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
+        #                 if(not self.is_position_valid(neighbor_cell)):
+        #                     continue
+        #                 if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
+        #                     is_reduce_reward = True
+        #                     break
                     
-                    neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
-                    if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
-                        is_reduce_reward = True
+        #             neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
+        #             if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
+        #                 is_reduce_reward = True
 
-                if(is_reduce_reward):
-                    reward -= 0.2
+        #         if(is_reduce_reward):
+        #             reward -= 0.05
 
-        lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
-        reward = reward - (min(0, lava_tile_count - 10) * 0.1)
+        # lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
+        # reward = reward - (min(0, lava_tile_count - 10))
 
         # for x in range(0, self.width):
         #     for y in range(0, self.height):
@@ -348,7 +351,7 @@ class GameWorld(gym.Env):
                 
 
         for index, cell in enumerate(self.player_path):
-            color = helper.lerp_color(constants.COLOR_GREEN, constants.COLOR_CYAN, index / (len(self.player_path) - 1))
+            color = helper.lerp_color(constants.COLOR_GREEN, constants.COLOR_CYAN, (index + 1) / (len(self.player_path)))
             pygame.draw.rect(self.display, color, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 0)
 
         for cell in self.coverable_path:

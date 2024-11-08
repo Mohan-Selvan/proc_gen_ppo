@@ -13,7 +13,7 @@ from collections import deque
 
 if __name__ == "__main__":
 
-    env = GameWorld(width= GRID_SIZE[0], height= GRID_SIZE[1], player_path=[(0, 0)],observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE, mask_shape=constants.ACTION_MASK_SHAPE, num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL)
+    env = GameWorld(width= GRID_SIZE[0], height= GRID_SIZE[1], player_path=[(0, 0)],observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE, mask_shape=constants.ACTION_MASK_SHAPE, num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL, path_randomness=0.1)
 
     is_path_define_mode = True
     path_define_cell = env.start_pos
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                         env.coverable_path = path
 
                     if(event.key == pygame.K_4):
-                        env.set_player_path(env.generate_player_path(randomness=0.05))
+                        env.set_player_path(env.generate_player_path(randomness=0.1))
                         print("Generated player path")
 
 

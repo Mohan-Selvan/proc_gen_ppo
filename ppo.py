@@ -88,6 +88,8 @@ class RewardLoggingCallback(BaseCallback):
         self.episode_rewards = []
 
     def _on_step(self):
+
+        print(self.locals)
         # Collect episode reward data after each episode
         if len(self.locals.get("infos", [])) > 0:
             for info in self.locals["infos"]:
@@ -128,12 +130,12 @@ def train():
     reward_callback = RewardLoggingCallback(log_dir)
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
-    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.99, n_epochs=30, seed=2)
+    model = PPO("CnnPolicy", create_env(), verbose=1, gamma=0.99, n_epochs=200, seed=2)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=50000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
 
     print("Training : Complete")
 
@@ -155,5 +157,5 @@ def test():
 
 if(__name__ == "__main__"):
     # check_env()
-    train()
+    # train()
     test()
