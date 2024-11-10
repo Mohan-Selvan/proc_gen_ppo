@@ -42,7 +42,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.max_frame_count = 1000
-        self.iterations_per_game = 2
+        self.iterations_per_game = 1
         self.path_randomness = path_randomness
 
         self.reset_count = 0
@@ -171,6 +171,11 @@ class GameWorld(gym.Env):
         terminated = self.frame_count > self.max_frame_count
         truncated = False
 
+        _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=6)
+        if(highest_reachable_path_index < self.player_path_index - 10):
+            # reward = 0
+            truncated = True
+
         self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
         self.player_pos = self.player_path[self.player_path_index]
 
@@ -178,8 +183,8 @@ class GameWorld(gym.Env):
         self.frame_count += 1
 
         if(terminated or truncated):
-            reachability, _ = self.calculate_reachability(max_distance=6)
-            if(reachability > 0.99):
+            reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=6)
+            if(reachability >= 0.98):
                 self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
                 print("Randomizing path")        
 
@@ -193,7 +198,7 @@ class GameWorld(gym.Env):
             reward = -10000
             return reward
 
-        reward, self.coverable_path = self.calculate_reachability(max_distance=6)
+        reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=6)
 
         reward *= 100
 
@@ -238,13 +243,13 @@ class GameWorld(gym.Env):
             if(self.grid[cell] == constants.GRID_PLATFORM):
                 blocks += 1
 
-        reward += (2 * (1.0 - (blocks / len(self.player_path))))
+        reward += (20 * (1.0 - (blocks / len(self.player_path))))
 
-        if(self.grid[self.start_pos] != constants.GRID_EMPTY_SPACE):
-            reward -= 1
+        if(self.grid[self.start_pos] == constants.GRID_EMPTY_SPACE):
+            reward += 10
 
-        if(self.grid[self.end_pos] != constants.GRID_EMPTY_SPACE):
-            reward -= 1
+        if(self.grid[self.end_pos] == constants.GRID_EMPTY_SPACE):
+            reward += 10
 
         return reward
 
@@ -588,7 +593,7 @@ class GameWorld(gym.Env):
             
         if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
             print("Invalid start cell")
-            return 0, list(reachable_cells)
+            return 0, list(reachable_cells), 0
         
         reachable_cells.add(start_cell)
 
@@ -666,7 +671,7 @@ class GameWorld(gym.Env):
 
         # Calculate reachability percentage based on the highest reachable index
         reachability_percentage = (highest_reached_index / (len(player_path) - 1)) if highest_reached_index >= 0 else 0
-        return reachability_percentage, list(reachable_cells)
+        return reachability_percentage, list(reachable_cells), highest_reached_index
 
     def generate_player_path(self, randomness):
 

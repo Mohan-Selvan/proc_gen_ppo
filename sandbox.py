@@ -121,7 +121,7 @@ if __name__ == "__main__":
                         print(f"Act : {env.action_space}")
 
                     if(event.key == pygame.K_3):
-                        percent, path = env.calculate_reachability(max_distance=6)
+                        percent, path, _ = env.calculate_reachability(max_distance=6)
                         print(f"Reachability : {percent}")
                         env.coverable_path = path
 
