@@ -13,7 +13,13 @@ from collections import deque
 
 if __name__ == "__main__":
 
-    env = GameWorld(width= GRID_SIZE[0], height= GRID_SIZE[1], player_path=[(0, 0)],observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE, mask_shape=constants.ACTION_MASK_SHAPE, num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL, path_randomness=0.1)
+    env = GameWorld(width= GRID_SIZE[0], height= GRID_SIZE[1], 
+                    player_path=[(0, 0)],
+                    observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE, 
+                    mask_shape=constants.ACTION_MASK_SHAPE, 
+                    num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL, 
+                    path_randomness=0.1, 
+                    random_seed=2)
 
     is_path_define_mode = True
     path_define_cell = env.start_pos
@@ -121,7 +127,7 @@ if __name__ == "__main__":
                         print(f"Act : {env.action_space}")
 
                     if(event.key == pygame.K_3):
-                        percent, path, _ = env.calculate_reachability(max_distance=6)
+                        percent, path, _ = env.calculate_reachability(max_distance=3)
                         print(f"Reachability : {percent}")
                         env.coverable_path = path
 

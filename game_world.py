@@ -16,7 +16,7 @@ import gymnasium as gym
 
 class GameWorld(gym.Env):
 
-    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions, path_randomness):
+    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions, path_randomness, random_seed):
 
         self.width = width
         self.height = height
@@ -44,6 +44,7 @@ class GameWorld(gym.Env):
         self.max_frame_count = 1000
         self.iterations_per_game = 1
         self.path_randomness = path_randomness
+        self.max_distance_from_path = 7
 
         self.reset_count = 0
 
@@ -52,11 +53,11 @@ class GameWorld(gym.Env):
         self.num_tile_actions = num_tile_actions
 
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
-        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions] * (self.mask_shape[0] * self.mask_shape[1]))
+        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions] * (self.mask_shape[0] * self.mask_shape[1]), seed=random_seed)
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 3), dtype=np.uint8
+            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 3), seed=random_seed, dtype=np.uint8
         )
 
         self.set_player_path(player_path)
@@ -171,7 +172,7 @@ class GameWorld(gym.Env):
         terminated = self.frame_count > self.max_frame_count
         truncated = False
 
-        _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=6)
+        _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
         if(highest_reachable_path_index < self.player_path_index - 10):
             # reward = 0
             truncated = True
@@ -183,7 +184,7 @@ class GameWorld(gym.Env):
         self.frame_count += 1
 
         if(terminated or truncated):
-            reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=6)
+            reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
             if(reachability >= 0.98):
                 self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
                 print("Randomizing path")        
@@ -198,7 +199,7 @@ class GameWorld(gym.Env):
             reward = -10000
             return reward
 
-        reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=6)
+        reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
 
         reward *= 100
 
@@ -310,7 +311,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.player_pos = self.start_pos
-        self.max_frame_count = (len(self.player_path) - 2) * self.iterations_per_game
+        self.max_frame_count = (len(self.player_path)) * self.iterations_per_game
 
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
@@ -377,7 +378,7 @@ class GameWorld(gym.Env):
         #print("Closing game")    
         pass
 
-    def calculate_reachability(self, max_distance=3):
+    def calculate_reachability(self, max_distance):
 
         def manhattan_distance(x1, y1, x2, y2):
             return abs(x1 - x2) + abs(y1 - y2)
@@ -592,7 +593,7 @@ class GameWorld(gym.Env):
             start_cell = self.get_cell_in_direction(cell=start_cell, direction=Direction.DOWN, restrict_boundary=False)
             
         if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
-            print("Invalid start cell")
+            # print("Invalid start cell")
             return 0, list(reachable_cells), 0
         
         reachable_cells.add(start_cell)

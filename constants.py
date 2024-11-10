@@ -31,6 +31,8 @@ DIRECTIONS = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT, Dir
 
 # MODEL
 
+RANDOM_SEED = 2
+
 GRID_SIZE = (52, 36)
 STATE_SPACE = (GRID_SIZE[0] * GRID_SIZE[1]) * 4
 ACTION_MASK_SHAPE = (5, 5)
