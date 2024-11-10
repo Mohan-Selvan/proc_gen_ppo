@@ -21,7 +21,7 @@ class GameWorld(gym.Env):
         self.width = width
         self.height = height
 
-        self.screen_resolution_X, self.screen_resolution_Y = 1920, 1080
+        self.screen_resolution_X, self.screen_resolution_Y = 1024, 768
         self.screen_resolution = (self.screen_resolution_X, self.screen_resolution_Y)
 
         self.display = pygame.display.set_mode(self.screen_resolution)
@@ -42,7 +42,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.max_frame_count = 1000
-        self.iterations_per_game = 1
+        self.iterations_per_game = 2
         self.path_randomness = path_randomness
 
         self.reset_count = 0
@@ -56,7 +56,7 @@ class GameWorld(gym.Env):
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 4), dtype=np.uint8
+            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 3), dtype=np.uint8
         )
 
         self.set_player_path(player_path)
@@ -112,7 +112,7 @@ class GameWorld(gym.Env):
 
         window_normalized_grid = np.round((window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
    
-        state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255, window_ohe_reachable_points * 255], axis=0)
+        state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255], axis=0) #window_ohe_reachable_points * 255
         obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
 
         return obs
@@ -179,7 +179,7 @@ class GameWorld(gym.Env):
 
         if(terminated or truncated):
             reachability, _ = self.calculate_reachability(max_distance=6)
-            if(reachability > 0.9):
+            if(reachability > 0.99):
                 self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
                 print("Randomizing path")        
 
@@ -194,6 +194,8 @@ class GameWorld(gym.Env):
             return reward
 
         reward, self.coverable_path = self.calculate_reachability(max_distance=6)
+
+        reward *= 100
 
         # Checking if lava tiles are surrounded with proper cells
         # for x in range(0, self.width):
@@ -231,12 +233,18 @@ class GameWorld(gym.Env):
         # reward /= ((self.width * self.height) - len(self.player_path))
         # reward *= 2
 
-        # blocks = 0
-        # for cell in self.player_path:
-        #     if(self.grid[cell] == constants.GRID_PLATFORM):
-        #         blocks += 1
+        blocks = 0
+        for cell in self.player_path:
+            if(self.grid[cell] == constants.GRID_PLATFORM):
+                blocks += 1
 
-        # reward += (2 * (1.0 - (blocks / len(self.player_path))))
+        reward += (2 * (1.0 - (blocks / len(self.player_path))))
+
+        if(self.grid[self.start_pos] != constants.GRID_EMPTY_SPACE):
+            reward -= 1
+
+        if(self.grid[self.end_pos] != constants.GRID_EMPTY_SPACE):
+            reward -= 1
 
         return reward
 
@@ -368,6 +376,10 @@ class GameWorld(gym.Env):
 
         def manhattan_distance(x1, y1, x2, y2):
             return abs(x1 - x2) + abs(y1 - y2)
+        
+        # Check proximity for each player path cell
+        def within_distance(cell, max_dist):
+            return any(manhattan_distance(cell[0], cell[1], px, py) <= max_dist for px, py in player_path)
         
         def is_any_route_clear(cell, routes):
             is_clear = False
@@ -571,15 +583,20 @@ class GameWorld(gym.Env):
             # ((3,  3), [[]]),
             ]
 
+        while(self.is_position_valid(start_cell) and (not can_stand_on(start_cell)) and within_distance(start_cell, max_distance)):
+            start_cell = self.get_cell_in_direction(cell=start_cell, direction=Direction.DOWN, restrict_boundary=False)
+            
+        if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
+            print("Invalid start cell")
+            return 0, list(reachable_cells)
+        
+        reachable_cells.add(start_cell)
+
         # Priority queue for A* search
         open_set = [(0, start_cell)]
         g_score = {start_cell: 0}
         heapq.heapify(open_set)
-        
-        # Check proximity for each player path cell
-        def within_distance(cell, max_dist):
-            return any(manhattan_distance(cell[0], cell[1], px, py) <= max_dist for px, py in player_path)
-
+    
         while open_set:
             _, current = heapq.heappop(open_set)
             x, y = current
@@ -589,7 +606,6 @@ class GameWorld(gym.Env):
                 nx, ny = (x + dx, y + dy)
                 new_cell = (nx, ny)
 
-                
                 if((new_cell == current) or (self.grid[current] == constants.GRID_PLATFORM) or (self.grid[current] == constants.GRID_LAVA)):
                     continue
 
@@ -608,6 +624,31 @@ class GameWorld(gym.Env):
                     g_score[new_cell] = g_score[current] + 1
                     heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
                     reachable_cells.add(new_cell)
+
+            for direction in [(-2, 2), (-1, 2), (1, 2), (2, 2)]:
+                nx, ny = (x + direction[0], y + direction[1])
+                new_cell = (nx, ny)
+
+                routes = []
+                for d, r in directions_and_routes:
+                    if(direction == d):
+                        routes = r
+                        break
+
+                if(not is_any_route_clear(current, routes)):
+                    continue
+                
+                # print(f"Current : {current}, direction : {direction}, routes : {routes}")
+
+                while(self.is_position_valid(new_cell) and within_distance(new_cell, max_distance)):
+                    if(can_stand_on(new_cell)):
+                        if ((new_cell not in reachable_cells)):# or (g_score[new_cell] > (g_score[current] + 1))):
+                            g_score[new_cell] = g_score[current] + 1
+                            heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
+                            reachable_cells.add(new_cell)             
+                        break
+                    else:
+                        new_cell = self.get_cell_in_direction(new_cell, direction=Direction.DOWN, restrict_boundary=False)
 
         # Find the highest index of a player path cell that is close to any reachable cell
         highest_reached_index = -1
