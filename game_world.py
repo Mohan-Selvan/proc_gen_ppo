@@ -186,7 +186,7 @@ class GameWorld(gym.Env):
         if(terminated or truncated):
             reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
             if(reachability >= 0.98):
-                self.set_player_path(self.generate_player_path(randomness=self.path_randomness))
+                self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
                 print("Randomizing path")        
 
 
@@ -333,9 +333,9 @@ class GameWorld(gym.Env):
                 else:
                     pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
-        pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
-        pygame.draw.rect(self.display, constants.COLOR_GREEN, rect= pygame.Rect(self.start_pos[0] * cell_draw_size, self.start_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
-        pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_GREEN, rect= pygame.Rect(self.start_pos[0] * cell_draw_size, self.start_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
 
         # Render action mask placement
         posX, posY = self.player_pos
@@ -415,12 +415,9 @@ class GameWorld(gym.Env):
                 return False
             return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
         
-        grid = self.grid
         player_path = self.player_path
 
-        height, width = grid.shape
         reachable_cells = set()
-        reachable_path_cells = set()  # Cells near the player path that can be reached
         start_cell = player_path[0]
 
         # directions_and_routes = [
@@ -589,12 +586,18 @@ class GameWorld(gym.Env):
             # ((3,  3), [[]]),
             ]
 
-        while(self.is_position_valid(start_cell) and (not can_stand_on(start_cell)) and within_distance(start_cell, max_distance)):
-            start_cell = self.get_cell_in_direction(cell=start_cell, direction=Direction.DOWN, restrict_boundary=False)
-            
-        if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
-            # print("Invalid start cell")
+        if(self.grid[start_cell] != constants.GRID_EMPTY_SPACE):
             return 0, list(reachable_cells), 0
+
+        if(not can_stand_on(start_cell)):
+            while(self.is_position_valid(start_cell) and within_distance(start_cell, max_distance)):
+                start_cell = self.get_cell_in_direction(cell=start_cell, direction=Direction.DOWN, restrict_boundary=False)
+                if(can_stand_on(start_cell)):
+                    break
+            
+            if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
+                # print(f"Invalid start cell {start_cell}")
+                return 0, list(reachable_cells), 0
         
         reachable_cells.add(start_cell)
 
@@ -674,18 +677,20 @@ class GameWorld(gym.Env):
         reachability_percentage = (highest_reached_index / (len(player_path) - 1)) if highest_reached_index >= 0 else 0
         return reachability_percentage, list(reachable_cells), highest_reached_index
 
-    def generate_player_path(self, randomness):
+    def generate_player_path(self, max_turns, randomness):
 
         grid_width_indices = (6, self.width - 6)
         grid_height_indices = (6, self.height - 6)
 
         def get_neighbors(x, y, visited):
             neighbors = []
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Left, Right, Up, Down
+            for dx, dy in [(1, 0), (0, -1), (0, 1)]:  # Left, Right, Up, Down #(-1, 0)
                 nx, ny = x + dx, y + dy
                 if grid_width_indices[0] <= nx <= grid_width_indices[1] and grid_height_indices[0] <= ny <= grid_height_indices[1] and (nx, ny) not in visited:
                     neighbors.append((nx, ny))
             return neighbors
+        
+        turn_count = 0
         
         path = [self.start_pos]
         visited = set(path)
@@ -704,9 +709,10 @@ class GameWorld(gym.Env):
                 continue
             
             # Select a neighbor based on complexity setting
-            if random.random() < randomness:
+            if turn_count < max_turns and (random.random() < randomness):
                 # High complexity: shuffle and choose any unvisited neighbor
                 next_cell = random.choice(neighbors)
+                turn_count += 1
             else:
                 # Low complexity: Move in direction closer to the goal
                 next_cell = min(

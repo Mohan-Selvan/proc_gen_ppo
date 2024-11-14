@@ -11,6 +11,8 @@ import numpy as np
 
 from collections import deque
 
+import ppo
+
 if __name__ == "__main__":
 
     env = GameWorld(width= GRID_SIZE[0], height= GRID_SIZE[1], 
@@ -132,9 +134,11 @@ if __name__ == "__main__":
                         env.coverable_path = path
 
                     if(event.key == pygame.K_4):
-                        env.set_player_path(env.generate_player_path(randomness=0.1))
+                        env.set_player_path(env.generate_player_path(max_turns=1000, randomness=0.5))
                         print("Generated player path")
-
+                    if(event.key == pygame.K_5):
+                        ppo.load_and_predict(env)
+                        print("Generated player path")
 
                     if(event.key == pygame.K_k):
 

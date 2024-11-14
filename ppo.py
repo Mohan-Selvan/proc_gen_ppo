@@ -76,7 +76,7 @@ def create_env():
                             observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE,
                             mask_shape=constants.ACTION_MASK_SHAPE, 
                             num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL,
-                            path_randomness=0.65,
+                            path_randomness=0.5,
                             random_seed=constants.RANDOM_SEED
                             ) 
 
@@ -84,7 +84,6 @@ def create_env():
 
 
 def check_env():
-
     env_checker.check_env(env=create_env(), warn=True, skip_render_check=False)
 
 
@@ -136,22 +135,21 @@ def train(device):
     reward_callback = RewardLoggingCallback(log_dir)
 
 
-    env = make_vec_env(lambda: create_env(), n_envs=2, vec_env_cls=SubprocVecEnv)  # Assumes "YourCustomEnv-v0" is registered in Gym
+    env = make_vec_env(lambda: create_env(), n_envs=1, vec_env_cls=SubprocVecEnv)  # Assumes "YourCustomEnv-v0" is registered in Gym
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
-    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=50, seed=constants.RANDOM_SEED, device=device)
+    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=50, learning_rate=0.01, seed=constants.RANDOM_SEED, device=device)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=200000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
 
     print("Training : Complete")
 
     # Save the model
     model.save(model_file_path)
-
 
 def test(device):
     
@@ -166,9 +164,31 @@ def test(device):
 
     print("Testing : Complete")
 
-DEVICE = 'cuda:0'
+def load_and_predict(env):
+    
+    model = RecurrentPPO.load(model_file_path)
 
+    obs, info = env.reset()  # Reset the environment and get the initial observation
+    done = [False] * 1 #env.num_envs  # List of done flags for each environment
+    episode_reward = 0
+        
+    while not all(done):  # Continue until all environments are done
+        # Get action from the model
+        action, _ = model.predict(obs, deterministic=True)
+
+        # Apply the action to the environment
+        # Here, action is a batch of actions for each environment
+        obs, reward, terminated, truncated, info = env.step(action)
+        done[0] = terminated or truncated
+
+        episode_reward += np.sum(reward)  # Accumulate rewards across all environments
+        env._update(True)
+
+    print(f"Test episode reward: {episode_reward}")
+    env.save_screen_image(f"./saves/custom_path_levels/test.png")
+
+DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
     # check_env()
-    train(device=DEVICE)
+    # train(device=DEVICE)
     test(device=DEVICE)
