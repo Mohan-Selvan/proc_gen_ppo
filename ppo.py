@@ -54,6 +54,7 @@ def evaluate_model(model, env, num_episodes=10):
         total_reward += episode_reward
         print(f"Episode {episode + 1} reward: {episode_reward}")
         env.save_screen_image(f"./saves/levels/test_iter_{(episode + 1)}.png")
+        env.set_player_path(env.generate_player_path(max_turns=1000, randomness=env.path_randomness))
 
     average_reward = total_reward / num_episodes
     print(f"Average reward over {num_episodes} episodes: {average_reward}")
@@ -192,6 +193,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    check_env()
-    train(device=DEVICE)
+    # check_env()
+    # train(device=DEVICE)
     test(device=DEVICE)

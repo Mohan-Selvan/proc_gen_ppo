@@ -202,27 +202,27 @@ class GameWorld(gym.Env):
         reward *= 1000
 
         # Checking if lava tiles are surrounded with proper cells
-        # for x in range(0, self.width):
-        #     for y in range(0, self.height):
-        #         cell = (x, y)
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                cell = (x, y)
 
-        #         is_reduce_reward = False
+                is_reduce_reward = False
 
-        #         if(self.grid[cell] == constants.GRID_LAVA):
-        #             for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
-        #                 neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
-        #                 if(not self.is_position_valid(neighbor_cell)):
-        #                     continue
-        #                 if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
-        #                     is_reduce_reward = True
-        #                     break
+                if(self.grid[cell] == constants.GRID_LAVA):
+                    for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
+                        neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
+                        if(not self.is_position_valid(neighbor_cell)):
+                            continue
+                        if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
+                            is_reduce_reward = True
+                            break
                     
-        #             neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
-        #             if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
-        #                 is_reduce_reward = True
+                    neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
+                    if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
+                        is_reduce_reward = True
 
-        #         if(is_reduce_reward):
-        #             reward -= 0.05
+                if(is_reduce_reward):
+                    reward -= 0.1
 
         # lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
         # reward = reward - (min(0, lava_tile_count - 10))
