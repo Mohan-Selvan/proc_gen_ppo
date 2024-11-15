@@ -637,15 +637,24 @@ class GameWorld(gym.Env):
                 new_cell = (nx, ny)
 
                 routes = []
+                found = False
                 for d, r in directions_and_routes:
                     if(direction == d):
                         routes = r
+                        found = True
                         break
+                
+                if(not found):
+                    print("No route found!")
+                    break
 
                 if(not is_any_route_clear(current, routes)):
                     continue
                 
                 # print(f"Current : {current}, direction : {direction}, routes : {routes}")
+
+                if(self.grid[new_cell] != constants.GRID_EMPTY_SPACE):
+                    continue
 
                 while(self.is_position_valid(new_cell) and within_distance(new_cell, max_distance)):
                     if(can_stand_on(new_cell)):
@@ -656,6 +665,9 @@ class GameWorld(gym.Env):
                         break
                     else:
                         new_cell = self.get_cell_in_direction(new_cell, direction=Direction.DOWN, restrict_boundary=False)
+
+                        if((not self.is_position_valid(new_cell)) or (self.grid[new_cell] != constants.GRID_EMPTY_SPACE)):
+                            break
 
         # Find the highest index of a player path cell that is close to any reachable cell
         highest_reached_index = -1
