@@ -18,6 +18,8 @@ from stable_baselines3.common import env_checker
 
 import gymnasium as gym
 
+import custom_policy
+
 
 def evaluate_model(model, env, num_episodes=10):
     """
@@ -135,16 +137,17 @@ def train(device):
     reward_callback = RewardLoggingCallback(log_dir)
 
 
-    env = make_vec_env(lambda: create_env(), n_envs=1, vec_env_cls=SubprocVecEnv)  # Assumes "YourCustomEnv-v0" is registered in Gym
+    env = make_vec_env(lambda: create_env(), n_envs=4, vec_env_cls=SubprocVecEnv)  # Assumes "YourCustomEnv-v0" is registered in Gym
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
-    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=50, learning_rate=0.01, seed=constants.RANDOM_SEED, device=device)
+    # "CnnLstmPolicy"
+    model = RecurrentPPO(custom_policy.CustomCnnLstmPolicy, env, verbose=1, gamma=0.95, n_epochs=10, learning_rate=0.003, batch_size=64, seed=constants.RANDOM_SEED, device=device)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=50000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
 
     print("Training : Complete")
 
@@ -189,6 +192,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    # check_env()
-    # train(device=DEVICE)
+    check_env()
+    train(device=DEVICE)
     test(device=DEVICE)

@@ -44,7 +44,7 @@ class GameWorld(gym.Env):
         self.max_frame_count = 1000
         self.iterations_per_game = 1
         self.path_randomness = path_randomness
-        self.max_distance_from_path = 7
+        self.max_distance_from_path = 5
 
         self.reset_count = 0
 
@@ -120,7 +120,7 @@ class GameWorld(gym.Env):
     
     def _get_info(self):
         return {
-            "progress": (self.player_path_index / len(self.player_path))
+            "path_progress": (self.player_path_index / len(self.player_path))
         }
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
@@ -131,14 +131,12 @@ class GameWorld(gym.Env):
         np.random.seed(seed)
         random.seed(seed)
 
-        
         self.frame_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
         self.player_pos = self.start_pos
         self.player_path_index = 0
 
         self.reset_count += 1
-
         # print(f"Game reset : {self.reset_count}")
 
         observation = self._get_obs()
@@ -311,7 +309,7 @@ class GameWorld(gym.Env):
 
         self.player_path = path_list
         self.player_pos = self.start_pos
-        self.max_frame_count = (len(self.player_path)) * self.iterations_per_game
+        self.max_frame_count = (len(self.player_path) - 2) * self.iterations_per_game
 
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
