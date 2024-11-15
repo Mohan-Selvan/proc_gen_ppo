@@ -18,7 +18,8 @@ from stable_baselines3.common import env_checker
 
 import gymnasium as gym
 
-import custom_policy
+import custom_policy_lstm
+import custom_policy_ppo
 
 
 def evaluate_model(model, env, num_episodes=10):
@@ -143,7 +144,8 @@ def train(device):
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
     # "CnnLstmPolicy"
-    model = RecurrentPPO(custom_policy.CustomCnnLstmPolicy, env, verbose=1, gamma=0.95, n_epochs=10, learning_rate=0.003, batch_size=64, seed=constants.RANDOM_SEED, device=device)
+    # model = RecurrentPPO(custom_policy_lstm.CustomCnnLstmPolicy, env, verbose=1, gamma=0.95, n_epochs=10, learning_rate=0.01, batch_size=64, seed=constants.RANDOM_SEED, device=device)
+    model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=10, learning_rate=0.01, batch_size=64, seed=constants.RANDOM_SEED, device=device)
 
     print("Training : Start")
 
@@ -161,7 +163,8 @@ def test(device):
 
     # Load the model later for evaluation
     # loaded_model = PPO.load(model_file_path)
-    loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    loaded_model = PPO.load(model_file_path, device=device)
 
     # Evaluate the model
     evaluate_model(loaded_model, create_env())
@@ -170,7 +173,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    model = RecurrentPPO.load(model_file_path)
+    # model = RecurrentPPO.load(model_file_path)
+    model = PPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation
     done = [False] * 1 #env.num_envs  # List of done flags for each environment
@@ -193,6 +197,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    # check_env()
-    # train(device=DEVICE)
+    check_env()
+    train(device=DEVICE)
     test(device=DEVICE)
