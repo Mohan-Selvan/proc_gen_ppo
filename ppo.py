@@ -144,13 +144,13 @@ def train(device):
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
     # "CnnLstmPolicy"
-    # model = RecurrentPPO(custom_policy_lstm.CustomCnnLstmPolicy, env, verbose=1, gamma=0.95, n_epochs=10, learning_rate=0.01, batch_size=64, seed=constants.RANDOM_SEED, device=device)
-    model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=10, learning_rate=0.01, batch_size=64, seed=constants.RANDOM_SEED, device=device)
+    model = RecurrentPPO(custom_policy_lstm.CustomCnnLstmPolicy, env, verbose=1, gamma=0.95, n_epochs=1000, learning_rate=3e-4, batch_size=64, seed=constants.RANDOM_SEED, device=device)
+    # model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=100, learning_rate=0.01, batch_size=32, seed=constants.RANDOM_SEED, device=device)
 
     print("Training : Start")
 
     # # Train the model
-    model.learn(total_timesteps=50000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=20000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
 
     print("Training : Complete")
 
@@ -163,8 +163,8 @@ def test(device):
 
     # Load the model later for evaluation
     # loaded_model = PPO.load(model_file_path)
-    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
-    loaded_model = PPO.load(model_file_path, device=device)
+    loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    # loaded_model = PPO.load(model_file_path, device=device)
 
     # Evaluate the model
     evaluate_model(loaded_model, create_env())
@@ -173,8 +173,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    # model = RecurrentPPO.load(model_file_path)
-    model = PPO.load(model_file_path)
+    model = RecurrentPPO.load(model_file_path)
+    # model = PPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation
     done = [False] * 1 #env.num_envs  # List of done flags for each environment
