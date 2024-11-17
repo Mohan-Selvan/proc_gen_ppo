@@ -3,3 +3,4 @@
 # Add something with respect to the player simulation in the observation space.
 # Use diagonal instead of a 2D mask.
 # Use single step learning using a big observation space and action mask
+# Invert and try
