@@ -144,7 +144,7 @@ def train(device):
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
     # "CnnLstmPolicy"
-    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=200, learning_rate=3e-5, batch_size=64, seed=constants.RANDOM_SEED, device=device)
+    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=200, ent_coef=0.1, learning_rate=3e-5, batch_size=128, seed=constants.RANDOM_SEED, device=device)
     # model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=100, learning_rate=0.01, batch_size=32, seed=constants.RANDOM_SEED, device=device)
 
     print("Training : Start")

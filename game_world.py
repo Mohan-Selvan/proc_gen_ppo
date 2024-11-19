@@ -133,7 +133,7 @@ class GameWorld(gym.Env):
 
         self.frame_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
-        self.player_pos = self.start_pos
+        self.player_pos = (self.width //2, self.height //2)
         self.player_path_index = 0
 
         self.reset_count += 1
@@ -310,6 +310,9 @@ class GameWorld(gym.Env):
         self.player_path = path_list
         self.player_pos = self.start_pos
         self.max_frame_count = (len(self.player_path) - 2) * self.iterations_per_game
+
+        self.max_frame_count = -1
+        self.player_pos = self.grid[(self.width // 2, self.height // 2)]
 
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)

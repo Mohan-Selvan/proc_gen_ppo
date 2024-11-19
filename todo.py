@@ -4,3 +4,4 @@
 # Use diagonal instead of a 2D mask.
 # Use single step learning using a big observation space and action mask
 # Invert and try
+# Consider starting and end point within the mask
