@@ -1,5 +1,5 @@
 import gymnasium as gym
-import torch
+import torch as th
 import torch.nn as nn
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -10,59 +10,65 @@ import numpy as np
 import constants
 
 
-# Define the custom CNN feature extractor
 class CustomCnnExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
-        # The base CNN feature extractor
-        super().__init__(observation_space, features_dim)
+    """
+    Custom CNN feature extractor for observation space (3, 16, 16).
+    """
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 64):
+        """
+        :param observation_space: (gym.spaces.Box) The observation space of the environment
+        :param features_dim: (int) Number of features extracted. This is the size of the output layer.
+        """
+        super(CustomCnnExtractor, self).__init__(observation_space, features_dim)
 
-        # Get the number of input channels from the observation space
-        n_input_channels = observation_space.shape[2]
-        
-        # Define CNN layers
-        self.cnn = nn.Sequential(
-            # First convolutional layer
-            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),  # Output: (32, 8, 8)
-            
-            # Second convolutional layer
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),  # Output: (64, 4, 4)
-            
-            # Third convolutional layer
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)   # Output: (128, 2, 2)
+        # Sanity check for observation space
+        assert observation_space.shape == (3, 16, 16), (
+            "This custom feature extractor is designed for (3, 16, 16) input shapes."
         )
 
-        # Calculate the resulting features_dim
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, n_input_channels, constants.OBSERVATION_WINDOW_SHAPE[0], constants.OBSERVATION_WINDOW_SHAPE[1])  # Batch size 1
-            output = self.cnn(dummy_input)
-            extracted_features_dim = output.numel()  # Flattened size of the output
-        self._features_dim = extracted_features_dim
+        # Define the CNN layers
+        self.cnn = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Output size: (32, 8, 8)
 
-        # Fully connected layer to map CNN output to features_dim
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Output size: (64, 4, 4)
+        )
+
+        # Calculate the flattened size of the output
+        with th.no_grad():
+            sample_input = th.zeros((1,) + observation_space.shape)  # (1, 3, 16, 16)
+            n_flatten = self.cnn(sample_input).view(-1).shape[0]
+
+        # Define the fully connected layers
         self.linear = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(extracted_features_dim, features_dim),
+            nn.Linear(n_flatten, features_dim),
             nn.ReLU()
         )
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        """
+        Forward pass for extracting features.
+        :param observations: (torch.Tensor) Input tensor (B, C, H, W)
+        :return: Extracted features (B, features_dim)
+        """
+        x = self.cnn(observations)
+        x = th.flatten(x, start_dim=1)
+        return self.linear(x)
     
-    def forward(self, observations):
-        cnn_output = self.cnn(observations)
-        return self.linear(cnn_output)
-    
+
 
 # Custom policy class for PPO
 class CustomCnnPolicy(ActorCriticCnnPolicy):
-    def __init__(self, observation_space: gym.spaces.Box, action_space: gym.spaces.Space, lr_schedule, **kwargs):
-        super().__init__(
-            observation_space,
-            action_space,
-            lr_schedule,
+    """
+    PPO policy with a custom CNN feature extractor for (3, 16, 16) input.
+    """
+    def __init__(self, *args, **kwargs):
+        super(CustomCnnPolicy, self).__init__(
+            *args,
+            **kwargs,
             features_extractor_class=CustomCnnExtractor,
-            **kwargs
+            features_extractor_kwargs={"features_dim": 64},  # Customize features_dim if needed
         )

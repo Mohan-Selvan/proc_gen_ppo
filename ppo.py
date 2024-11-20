@@ -13,6 +13,9 @@ from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecTransposeImage
+from stable_baselines3.common.logger import configure
+
+from torch.utils.tensorboard import SummaryWriter
 
 from stable_baselines3.common import env_checker
 
@@ -86,7 +89,6 @@ def create_env():
 
     return env
 
-
 def check_env():
     env_checker.check_env(env=create_env(), warn=True, skip_render_check=False)
 
@@ -129,6 +131,16 @@ class RewardLoggingCallback(BaseCallback):
         plt.savefig("./saves/train_plot.png")
         plt.close()
 
+# Define a custom callback to log additional metrics to TensorBoard
+class TensorboardCallback(BaseCallback):
+    def __init__(self, verbose=0):
+        super(TensorboardCallback, self).__init__(verbose)
+
+    def _on_step(self) -> bool:
+        # Example: Add custom metrics
+        episode_rewards = np.mean(self.training_env.get_attr("last_episode_rewards"))
+        self.logger.record("custom/episode_rewards_mean", episode_rewards)
+        return True
 
 def train(device):
 
@@ -139,19 +151,23 @@ def train(device):
     reward_callback = RewardLoggingCallback(log_dir)
 
 
-    env = make_vec_env(lambda: create_env(), n_envs=4, vec_env_cls=SubprocVecEnv)  # Assumes "YourCustomEnv-v0" is registered in Gym
+    env = make_vec_env(lambda: create_env(), n_envs=4, vec_env_cls=SubprocVecEnv)
+
+    # Enable custom TensorBoard logging
+    logger = configure(log_dir, ["stdout", "tensorboard"])
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
     # "CnnLstmPolicy"
-    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=200, ent_coef=0.1, learning_rate=3e-5, batch_size=128, seed=constants.RANDOM_SEED, device=device)
-    # model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=100, learning_rate=0.01, batch_size=32, seed=constants.RANDOM_SEED, device=device)
+    # model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=50, ent_coef=0.1, learning_rate=3e-4, seed=constants.RANDOM_SEED, device=device)
+
+    model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=20, ent_coef=0.1, learning_rate=3e-4, seed=constants.RANDOM_SEED, device=device, tensorboard_log=log_dir)
+
+    model.set_logger(logger)
 
     print("Training : Start")
-
     # # Train the model
-    model.learn(total_timesteps=10000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
-
+    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
@@ -163,8 +179,8 @@ def test(device):
 
     # Load the model later for evaluation
     # loaded_model = PPO.load(model_file_path)
-    loaded_model = RecurrentPPO.load(model_file_path, device=device)
-    # loaded_model = PPO.load(model_file_path, device=device)
+    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    loaded_model = PPO.load(model_file_path, device=device)
 
     # Evaluate the model
     evaluate_model(loaded_model, create_env())
@@ -173,8 +189,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    model = RecurrentPPO.load(model_file_path)
-    # model = PPO.load(model_file_path)
+    # model = RecurrentPPO.load(model_file_path)
+    model = PPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation
     done = [False] * 1 #env.num_envs  # List of done flags for each environment

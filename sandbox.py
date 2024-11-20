@@ -1,6 +1,7 @@
 import pygame
 import constants
 import pickle
+import math
 
 from game_world import GameWorld
 from constants import Direction
@@ -108,13 +109,7 @@ if __name__ == "__main__":
 
                     if(event.key == pygame.K_1):
 
-                        mask =np.array(
-                            [[0, 1, 2, 1, 0],
-                            [1, 2, 0, 1, 1],
-                            [1, 2, 0, 0, 2],
-                            [1, 0, 0, 1, 1],
-                            [1, 2, 0, 1, 1],
-                            ]).T
+                        mask = np.random.random_integers(0, constants.NUMBER_OF_ACTIONS_PER_CELL - 1, constants.ACTION_MASK_SHAPE)
 
                         new_state, reward, terminated, truncated, _ = env.step(action=mask)
                         norm_frame_count = (env.frame_count / env.max_frame_count)
@@ -136,9 +131,39 @@ if __name__ == "__main__":
                     if(event.key == pygame.K_4):
                         env.set_player_path(env.generate_player_path(max_turns=1000, randomness=0.5))
                         print("Generated player path")
+
                     if(event.key == pygame.K_5):
                         ppo.load_and_predict(env)
                         print("Generated player path")
+                    
+                    if(event.key == pygame.K_6):
+
+                        mask_positions = []
+                        mask_shape = constants.ACTION_MASK_SHAPE
+                        pivotX, pivotY = (math.floor(mask_shape[0] / 2), math.floor(mask_shape[1] / 2))
+                        posX, posY = env.player_pos
+                        for x in range(0, mask_shape[0]):
+                            for y in range(0, mask_shape[1]):
+                                grid_pos = posX + x - pivotX, posY + y - pivotY
+                                mask_positions.append(grid_pos)
+
+                        
+                        filtered_path = []
+
+                        is_on_path = False
+                        for cell in env.player_path:
+                            if(cell in mask_positions and (not is_on_path)):
+                                is_on_path = True
+                            
+                            if(cell in mask_positions and is_on_path):
+                                filtered_path.append(cell)
+
+                            if(is_on_path and (cell not in mask_positions)):
+                                break
+                        
+                        percent, path, _ = env.calculate_reachability_in_mask(filtered_path)
+                        env.coverable_path = path
+                        print(f"Reachability in mask : {percent}")
 
                     if(event.key == pygame.K_k):
 

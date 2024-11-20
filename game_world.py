@@ -133,7 +133,7 @@ class GameWorld(gym.Env):
 
         self.frame_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
-        self.player_pos = (self.width //2, self.height //2)
+        self.player_pos = self.start_pos
         self.player_path_index = 0
 
         self.reset_count += 1
@@ -311,9 +311,6 @@ class GameWorld(gym.Env):
         self.player_pos = self.start_pos
         self.max_frame_count = (len(self.player_path) - 2) * self.iterations_per_game
 
-        self.max_frame_count = -1
-        self.player_pos = self.grid[(self.width // 2, self.height // 2)]
-
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
         self.render(flip_display)
@@ -435,7 +432,8 @@ class GameWorld(gym.Env):
             # ((-3, -3), [[]]), 
             
             ((-2, -3), [
-                [(0, -1), (0, -2), (0, -3), (-1, -3)]
+                [(0, -1), (0, -2), (0, -3), (-1, -3)],
+                [(-1, 0), (0, -1), (-1, -1), (-1, -2), (-1, -3)]
             ]), 
             
             ((-1, -3), [
@@ -449,7 +447,8 @@ class GameWorld(gym.Env):
             ]),
             
             ((2, -3), [
-                [(0, -1), (0, -2), (0, -3), (1, -3)]
+                [(0, -1), (0, -2), (0, -3), (1, -3)],
+                [(1, 0), (0, -1), (1, -1), (1, -2), (1, -3)]
             ]), 
             
             # ((3, -3), [[]]),
@@ -457,7 +456,8 @@ class GameWorld(gym.Env):
             # ((-3, -2), [[]]),
             
             ((-2, -2), [
-                [(0, -1), (0, -2), (0, -3), (-1, -3), (-2, -3)]
+                [(0, -1), (0, -2), (0, -3), (-1, -3), (-2, -3)],
+                [(0, -1), (-1, -1), (-1, -2)]
             ]), 
             
             ((-1, -2), [
@@ -472,7 +472,8 @@ class GameWorld(gym.Env):
             ]), 
             
             ((2, -2), [
-                [(0, -1), (0, -2), (0, -3), (1, -3), (2, -3)]
+                [(0, -1), (0, -2), (0, -3), (1, -3), (2, -3)],
+                [(0, -1), (1, -1), (1, -2)]
             ]),
             
             # ((3, -2), [[]]),
@@ -567,7 +568,7 @@ class GameWorld(gym.Env):
             # ((-3,  3), [[]]), 
             
             ((-2,  3), [
-                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1), (-2, 2)]
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1), (-2, 2)],
             ]), 
             
             ((-1,  3), [
@@ -581,7 +582,7 @@ class GameWorld(gym.Env):
             ]),
             
             ((2,  3), [
-                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1), (2, 2)]
+                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1), (2, 2)],
             ]),
             
             # ((3,  3), [[]]),
@@ -739,6 +740,308 @@ class GameWorld(gym.Env):
             current = next_cell
         
         return path
+    
+    def calculate_reachability_in_mask(self, path):
+        
+        def manhattan_distance(x1, y1, x2, y2):
+            return abs(x1 - x2) + abs(y1 - y2)
+        
+        # Check proximity for each player path cell
+        def within_distance(cell, max_dist):
+            return any(manhattan_distance(cell[0], cell[1], px, py) <= max_dist for px, py in path)
+        
+        def is_any_route_clear(cell, routes):
+            is_clear = False
+            for route in routes:
+                if(are_route_cells_clear(cell, route)):
+                    is_clear = True
+                    break
+            return is_clear
+        
+        def are_route_cells_clear(cell, directions):
+            for (dx, dy) in directions:
+                nx, ny = (cell[0] + dx, cell[1] + dy)
+                new_cell = (nx, ny)
+
+                if(not self.is_position_valid(new_cell)):
+                    return False
+
+                if(not (self.grid[new_cell] == constants.GRID_EMPTY_SPACE)):
+                    return False
+
+            return True
+  
+        def can_stand_on(cell):
+            below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
+            if(not self.is_position_valid(below_cell)):
+                return False
+            return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
+        
+        max_distance = 5
+
+        reachable_cells = set()
+
+        directions_and_routes = [
+            # ((-3, -3), [[]]), 
+            
+            ((-2, -3), [
+                [(0, -1), (0, -2), (0, -3), (-1, -3)]
+            ]), 
+            
+            ((-1, -3), [
+                [(0, -1), (0, -2), (0, -3)]
+            ]),
+            
+            # ((0, -3), [[]]), 
+            
+            ((1, -3), [
+                [(0, -1), (0, -2), (0, -3)]
+            ]),
+            
+            ((2, -3), [
+                [(0, -1), (0, -2), (0, -3), (1, -3)]
+            ]), 
+            
+            # ((3, -3), [[]]),
+            
+            # ((-3, -2), [[]]),
+            
+            ((-2, -2), [
+                [(0, -1), (0, -2), (0, -3), (-1, -3), (-2, -3)]
+            ]), 
+            
+            ((-1, -2), [
+                [(0, -1), (0, -2)]
+            ]), 
+            
+            # ((0, -2), [[]]), 
+            
+            
+            ((1, -2), [
+                [(0, -1), (0, -2)]
+            ]), 
+            
+            ((2, -2), [
+                [(0, -1), (0, -2), (0, -3), (1, -3), (2, -3)]
+            ]),
+            
+            # ((3, -2), [[]]),
+            # ((-3, -1), [[]]), 
+            
+            ((-2, -1), [
+                [(0, -1), (0, -2), (-1, -2), (-2, -2)]
+            ]), 
+            
+            ((-1, -1), [
+                [(0, -1)]
+            ]), 
+            
+            # ((0, -1), [[]]), 
+            
+            ((1, -1), [
+                [(0, -1)]
+            ]), 
+            
+            ((2, -1), [
+                [(0, -1), (0, -2), (1, -2), (2, -2)]
+            ]), 
+            
+            # ((3, -1), [[]]),
+            
+
+            ((-3,  0), [
+                [(0, -1), (-1, -1), (-1, -2), (-2, -2), (-2, -1), (-3, -1)]
+            ]), 
+            
+            ((-2,  0), [
+                [(0, -1), (-1, -1), (-2, -1)]
+            ]), 
+            
+            ((-1,  0), [[(-1, 0)]]), 
+            
+            ((0,  0), [[(0, 0)]]), 
+            
+            ((1,  0), [[(1, 0)]]), 
+            
+            ((2,  0), [
+                [(0, -1), (1, -1), (2, -1)]
+            ]), 
+            
+            ((3,  0), [
+                [(0, -1), (1, -1), (1, -2), (2, -2), (2, -1), (3, -1)]
+            ]),
+
+            # ((-3,  1), [[]]), 
+            
+            ((-2,  1), [
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0)]
+            ]), 
+            
+            ((-1,  1), [
+                [(-1, 0)]
+            ]), 
+            
+            # ((0,  1), [[]]), 
+            
+            ((1,  1), [
+                [(1, 0)]
+            ]),
+            
+            ((2,  1), [
+                [(0, -1), (1, -1), (2, -1), (2, 0)]
+            ]), 
+            
+            # ((3,  1), [[]]),
+            # ((-3,  2), [[]]), 
+            
+            
+            ((-2,  2), [
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1)]
+            ]),
+            
+            ((-1,  2), [
+                [(-1, 0), (-1, 1)]
+            ]),
+             
+            # ((0,  2), [[]]), 
+            
+            ((1,  2), [
+                [(1, 0), (1, 1)]
+            ]), 
+            
+            ((2,  2), [
+                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1)]
+            ]),
+            
+            # ((3,  2), [[]]),
+            # ((-3,  3), [[]]), 
+            
+            ((-2,  3), [
+                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1), (-2, 2)]
+            ]), 
+            
+            ((-1,  3), [
+                [(-1, 0), (-1, 1), (-1, 2)]
+            ]), 
+            
+            # ((0,  3), [[]]), 
+            
+            ((1,  3), [
+                [(1, 0), (1, 1), (1, 2)]
+            ]),
+            
+            ((2,  3), [
+                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1), (2, 2)]
+            ]),
+            
+            # ((3,  3), [[]]),
+            ]
+
+        start_cell = path[0]
+        end_cell = path[-1]
+
+        if(self.grid[start_cell] != constants.GRID_EMPTY_SPACE):
+            return 0, list(reachable_cells), 0
+
+        if(not can_stand_on(start_cell)):
+            while(self.is_position_valid(start_cell) and within_distance(start_cell, max_distance)):
+                start_cell = self.get_cell_in_direction(cell=start_cell, direction=Direction.DOWN, restrict_boundary=False)
+                if(can_stand_on(start_cell)):
+                    break
+            
+            if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
+                # print(f"Invalid start cell {start_cell}")
+                return 0, list(reachable_cells), 0
+        
+        reachable_cells.add(start_cell)
+
+        # Priority queue for A* search
+        open_set = [(0, start_cell)]
+        g_score = {start_cell: 0}
+        heapq.heapify(open_set)
+    
+        while open_set:
+            _, current = heapq.heappop(open_set)
+            x, y = current
+            
+            for direction, routes in directions_and_routes:
+                dx, dy = direction
+                nx, ny = (x + dx, y + dy)
+                new_cell = (nx, ny)
+
+                if((new_cell == current) or (self.grid[current] == constants.GRID_PLATFORM) or (self.grid[current] == constants.GRID_LAVA)):
+                    continue
+
+                if(not (self.is_position_valid(new_cell) and within_distance(new_cell, 10))):
+                    continue
+                
+                if(not (can_stand_on(new_cell))):
+                   continue
+
+                if(not is_any_route_clear(current, routes)):
+                    continue
+
+                # print(f"Current : {current}, New cell : {new_cell}, Direction : {direction}, Route : {routes}")
+
+                if ((new_cell not in reachable_cells)):# or (g_score[new_cell] > (g_score[current] + 1))):
+                    g_score[new_cell] = g_score[current] + 1
+                    heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
+                    reachable_cells.add(new_cell)
+
+            for direction in [(-2, 2), (-1, 2), (1, 2), (2, 2)]:
+                nx, ny = (x + direction[0], y + direction[1])
+                new_cell = (nx, ny)
+
+                routes = []
+                found = False
+                for d, r in directions_and_routes:
+                    if(direction == d):
+                        routes = r
+                        found = True
+                        break
+                
+                if(not found):
+                    print("No route found!")
+                    break
+
+                if(not is_any_route_clear(current, routes)):
+                    continue
+                
+                # print(f"Current : {current}, direction : {direction}, routes : {routes}")
+
+                if(self.grid[new_cell] != constants.GRID_EMPTY_SPACE):
+                    continue
+
+                while(self.is_position_valid(new_cell) and within_distance(new_cell, max_distance)):
+                    if(can_stand_on(new_cell)):
+                        if ((new_cell not in reachable_cells)):# or (g_score[new_cell] > (g_score[current] + 1))):
+                            g_score[new_cell] = g_score[current] + 1
+                            heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
+                            reachable_cells.add(new_cell)             
+                        break
+                    else:
+                        new_cell = self.get_cell_in_direction(new_cell, direction=Direction.DOWN, restrict_boundary=False)
+
+                        if((not self.is_position_valid(new_cell)) or (self.grid[new_cell] != constants.GRID_EMPTY_SPACE)):
+                            break
+
+        # Find the highest index of a player path cell that is close to any reachable cell
+        highest_reached_index = -1
+        for reachable_cell in reachable_cells:
+                for direction, routes in directions_and_routes:
+                    new_cell = (reachable_cell[0] + direction[0], reachable_cell[1] + direction[1])
+                    if(new_cell in path):
+                        if(is_any_route_clear(reachable_cell, routes)):
+                            for i, path_cell in enumerate(path):
+                                if(path_cell == new_cell):
+                                    highest_reached_index = max(highest_reached_index, i)
+
+        # Calculate reachability percentage based on the highest reachable index
+        reachability_percentage = (highest_reached_index / (len(path) - 1)) if highest_reached_index >= 0 else 0
+        return reachability_percentage, list(reachable_cells), highest_reached_index
+
+
+        
 
     def save_screen_image(self, full_path):
         pygame.image.save(self.display, full_path)
