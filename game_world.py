@@ -62,7 +62,7 @@ class GameWorld(gym.Env):
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=1, shape=(3, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float64
+            low=0, high=1, shape=(4, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float64
         )
 
         self.set_player_path(player_path)
@@ -72,6 +72,11 @@ class GameWorld(gym.Env):
       
         normalized_grid = self.grid.copy()
         normalized_grid = (normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1))
+
+        _, reachable_cells, _ = self.calculate_reachability(max_distance=self.max_distance_from_path) 
+        ohe_grid_reachable_cells = np.zeros_like(self.grid, dtype=np.uint8)        
+        for cell in reachable_cells:
+            ohe_grid_reachable_cells[cell] = 1
 
         ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
         for cell in self.player_path:
@@ -95,7 +100,7 @@ class GameWorld(gym.Env):
                     window_grid[world_pos] = self.grid[world_pos]
                     ohe_grid_mask_pos[world_pos] = 1
    
-        state = np.stack([normalized_grid, ohe_grid_player_path, ohe_grid_mask_pos], axis=0).astype(np.float64) #  window_grid * 255
+        state = np.stack([normalized_grid, ohe_grid_player_path, ohe_grid_mask_pos, ohe_grid_reachable_cells], axis=0).astype(np.float64) #  window_grid * 255
         #obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
         obs = state
         return obs
@@ -214,10 +219,10 @@ class GameWorld(gym.Env):
             return reward
 
         reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-        reward *= 1000
+        return reward
 
-        hanging_cells = self.find_hanging_cells()
-        reward -= len(hanging_cells) * 100
+        # hanging_cells = self.find_hanging_cells()
+        # reward -= len(hanging_cells) * 100
 
         # # Checking if lava tiles are surrounded with proper cells
         # for x in range(0, self.width):
@@ -262,11 +267,11 @@ class GameWorld(gym.Env):
 
         # reward += (20 * (1.0 - (blocks / len(self.player_path))))
 
-        if(self.grid[self.start_pos] != constants.GRID_EMPTY_SPACE):
-            reward -= 5000
+        # if(self.grid[self.start_pos] != constants.GRID_EMPTY_SPACE):
+        #     reward -= 5000
 
-        if(self.grid[self.end_pos] != constants.GRID_EMPTY_SPACE):
-            reward -= 5000
+        # if(self.grid[self.end_pos] != constants.GRID_EMPTY_SPACE):
+        #     reward -= 5000
 
         return reward
 

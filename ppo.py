@@ -176,7 +176,7 @@ def train(device):
                             n_epochs=10, 
                             ent_coef=0.1,
                             clip_range=0.3,
-                            learning_rate=linear_schedule(1e-3),
+                            learning_rate=linear_schedule(3e-4),
                             normalize_advantage=True,
                             seed=constants.RANDOM_SEED,
                             device=device,
