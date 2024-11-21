@@ -13,6 +13,7 @@ from collections import deque
 from typing import Optional
 
 import gymnasium as gym
+import sys
 
 class GameWorld(gym.Env):
 
@@ -53,21 +54,24 @@ class GameWorld(gym.Env):
         self.num_tile_actions = num_tile_actions
 
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
-        self.action_space = gym.spaces.MultiDiscrete([num_tile_actions] * (self.mask_shape[0] * self.mask_shape[1]), seed=random_seed)
+        # self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), seed=random_seed, dtype=np.uint8
+        # )
+
+        self.action_space = gym.spaces.Box(low=0.0, high=(num_tile_actions - 1), shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.uint8
+        )
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=255, shape=(self.observation_window_shape[0], self.observation_window_shape[1], 3), seed=random_seed, dtype=np.uint8
+            low=0, high=1, shape=(3, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float64
         )
 
         self.set_player_path(player_path)
         # self.reset()
-
     
     def _get_obs(self):
       
         normalized_grid = self.grid.copy()
-        normalized_grid = np.round((normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+        normalized_grid = (normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1))
 
         ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
         for cell in self.player_path:
@@ -91,8 +95,9 @@ class GameWorld(gym.Env):
                     window_grid[world_pos] = self.grid[world_pos]
                     ohe_grid_mask_pos[world_pos] = 1
    
-        state = np.stack([normalized_grid, ohe_grid_player_path * 255, ohe_grid_mask_pos * 255], axis=0) #  window_grid * 255
-        obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
+        state = np.stack([normalized_grid, ohe_grid_player_path, ohe_grid_mask_pos], axis=0).astype(np.float64) #  window_grid * 255
+        #obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
+        obs = state
         return obs
 
         # window_shape = self.observation_window_shape
@@ -151,8 +156,14 @@ class GameWorld(gym.Env):
 
     def step(self, action):
 
+        # print(action.shape)
+        # print(action)
+
         # Convert the flat action back to a 2D action mask
-        action_mask = np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))
+        action_mask = np.round(np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))).astype(int)
+        # print(action_mask.shape)
+        # print(action_mask)
+        # print("--------------------------")
 
         # print(action_mask_2d.shape)
         # print(action_mask_2d)
@@ -275,6 +286,8 @@ class GameWorld(gym.Env):
                         self.grid[grid_pos] = constants.GRID_PLATFORM
                     elif(mask_2d[x, y] == constants.TILE_ACTION_PLACE_LAVA): 
                         self.grid[grid_pos] = constants.GRID_LAVA
+                    else:
+                        print("INVALID TILE ACTION!")
       
     def is_position_valid(self, position):
         x, y = position

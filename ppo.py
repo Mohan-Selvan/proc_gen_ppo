@@ -13,6 +13,7 @@ from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecTransposeImage
+from stable_baselines3.common.vec_env import VecMonitor, VecTransposeImage
 from stable_baselines3.common.logger import configure
 
 from torch.utils.tensorboard import SummaryWriter
@@ -156,21 +157,27 @@ def train(device):
     reward_callback = RewardLoggingCallback(log_dir)
 
     env = make_vec_env(lambda: create_env(), n_envs=4, vec_env_cls=SubprocVecEnv)
+    # env = VecMonitor(env)  # For monitoring
+    # env = VecTransposeImage(env)  # Convert observation to channel-first
 
     # Enable custom TensorBoard logging
     logger = configure(log_dir, ["stdout", "tensorboard"])
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
+
+    
     
     # "CnnLstmPolicy"
     model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
+                            policy_kwargs=dict(normalize_images=False, ortho_init=True),
                             gamma=0.99, 
                             gae_lambda=0.95,
                             n_epochs=10, 
                             ent_coef=0.1,
                             clip_range=0.3,
                             learning_rate=linear_schedule(1e-3),
+                            normalize_advantage=True,
                             seed=constants.RANDOM_SEED,
                             device=device,
                             tensorboard_log=log_dir)
@@ -180,7 +187,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=70000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=50000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
@@ -226,6 +233,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    # check_env()
+    check_env()
     train(device=DEVICE)
     test(device=DEVICE)

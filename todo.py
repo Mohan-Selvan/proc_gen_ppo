@@ -6,3 +6,6 @@
 # Invert and try
 # Consider starting and end point within the mask
 # Create random point in the mask and ensure the cell is reachable.
+
+
+# Last used action space in observation matrix
