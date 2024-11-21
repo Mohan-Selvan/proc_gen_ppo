@@ -66,57 +66,61 @@ class GameWorld(gym.Env):
     
     def _get_obs(self):
       
-        # normalized_grid = self.grid.copy()
-        # normalized_grid = np.round((normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+        normalized_grid = self.grid.copy()
+        normalized_grid = np.round((normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
 
-        # ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
-        # for cell in self.player_path:
-        #     ohe_grid_player_path[cell] = 1
+        ohe_grid_player_path = np.zeros_like(self.grid, dtype=np.uint8)        
+        for cell in self.player_path:
+            ohe_grid_player_path[cell] = 1
         
         # ohe_grid_player_pos = np.zeros_like(self.grid, dtype=np.uint8)
         # ohe_grid_player_pos[self.player_pos] = 1
+        ohe_grid_mask_pos = np.zeros_like(self.grid, dtype=np.uint8)
+        ohe_grid_mask_pos[self.player_pos] = 1
 
-        # window_size = ((5, 5))
-        # window = np.full(window_size, 0, dtype = np.uint8)
-        # window_grid = np.full_like(self.grid, 0, dtype = np.uint8)
-
-        # base_pos = (self.player_pos[0] - (math.floor(window_size[0] / 2)), self.player_pos[1] - math.floor(window_size[1] / 2))
-        # for x in range(0, window_size[0]):
-        #     for y in range(0, window_size[1]):
-        #         world_pos = base_pos[0] + x, base_pos[1] + y
-        #         if(self.is_position_valid(world_pos)):
-        #             window[x, y] = self.grid[world_pos]
-        #             window_grid[world_pos] = self.grid[world_pos]
-   
-        # state = np.stack([normalized_grid, ohe_grid_player_path * 255, ohe_grid_player_pos * 255, window_grid * 255], axis=0)
-        # return state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
-
-        window_shape = self.observation_window_shape
-        window_normalized_grid = np.full(window_shape, constants.GRID_PLATFORM, dtype = np.uint8)
-        window_ohe_player_path = np.full(window_shape, 0, dtype = np.uint8)
-        window_ohe_player_pos = np.full(window_shape, 0, dtype = np.uint8)
-        window_ohe_reachable_points = np.full(window_shape, 0, dtype=np.uint8)
+        window_shape = constants.ACTION_MASK_SHAPE
+        window = np.full(window_shape, 0, dtype = np.uint8)
+        window_grid = np.full_like(self.grid, 0, dtype = np.uint8)
 
         base_pos = (self.player_pos[0] - (math.floor(window_shape[0] / 2)), self.player_pos[1] - math.floor(window_shape[1] / 2))
         for x in range(0, window_shape[0]):
             for y in range(0, window_shape[1]):
                 world_pos = base_pos[0] + x, base_pos[1] + y
-                
                 if(self.is_position_valid(world_pos)):
-                    window_normalized_grid[x, y] = self.grid[world_pos]
-                if(world_pos in self.player_path):
-                    window_ohe_player_path[x, y] = 1 
-                if(world_pos == self.player_pos):
-                    window_ohe_player_pos[x, y] = 1
-                if(world_pos in self.coverable_path):
-                    window_ohe_reachable_points[x, y] = 1
-
-        window_normalized_grid = np.round((window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+                    window[x, y] = self.grid[world_pos]
+                    window_grid[world_pos] = self.grid[world_pos]
+                    ohe_grid_mask_pos[world_pos] = 1
    
-        state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255], axis=0) #window_ohe_reachable_points * 255
+        state = np.stack([normalized_grid, ohe_grid_player_path * 255, ohe_grid_mask_pos * 255], axis=0) #  window_grid * 255
         obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
-
         return obs
+
+        # window_shape = self.observation_window_shape
+        # window_normalized_grid = np.full(window_shape, constants.GRID_PLATFORM, dtype = np.uint8)
+        # window_ohe_player_path = np.full(window_shape, 0, dtype = np.uint8)
+        # window_ohe_player_pos = np.full(window_shape, 0, dtype = np.uint8)
+        # window_ohe_reachable_points = np.full(window_shape, 0, dtype=np.uint8)
+
+        # base_pos = (self.player_pos[0] - (math.floor(window_shape[0] / 2)), self.player_pos[1] - math.floor(window_shape[1] / 2))
+        # for x in range(0, window_shape[0]):
+        #     for y in range(0, window_shape[1]):
+        #         world_pos = base_pos[0] + x, base_pos[1] + y
+                
+        #         if(self.is_position_valid(world_pos)):
+        #             window_normalized_grid[x, y] = self.grid[world_pos]
+        #         if(world_pos in self.player_path):
+        #             window_ohe_player_path[x, y] = 1 
+        #         if(world_pos == self.player_pos):
+        #             window_ohe_player_pos[x, y] = 1
+        #         if(world_pos in self.coverable_path):
+        #             window_ohe_reachable_points[x, y] = 1
+
+        # window_normalized_grid = np.round((window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1)) * 255).astype(np.uint8)
+   
+        # state = np.stack([window_normalized_grid, window_ohe_player_path * 255, window_ohe_player_pos * 255], axis=0) #window_ohe_reachable_points * 255
+        # obs = state.transpose(1, 2, 0) # Shape to (grid_size X, grid_size Y, 4 channels)
+
+        # return obs
     
     def _get_info(self):
         return {
@@ -171,10 +175,10 @@ class GameWorld(gym.Env):
         terminated = self.frame_count > self.max_frame_count
         truncated = False
 
-        # _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-        # if(highest_reachable_path_index < self.player_path_index - 10):
-        #     # reward = 0
-        #     truncated = True
+        _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        if(highest_reachable_path_index < self.player_path_index - 10):
+            # reward = 0
+            truncated = True
 
         self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
         self.player_pos = self.player_path[self.player_path_index]
