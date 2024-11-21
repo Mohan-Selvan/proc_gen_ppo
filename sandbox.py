@@ -165,6 +165,11 @@ if __name__ == "__main__":
                         env.coverable_path = path
                         print(f"Reachability in mask : {percent}")
 
+                    if(event.key == pygame.K_7):
+                        hanging_cells = env.find_hanging_cells()
+                        env.coverable_path = hanging_cells
+                        print("Key 7")
+
                     if(event.key == pygame.K_k):
 
                         covered_path = env.find_path(env.start_pos, env.end_pos)
@@ -195,7 +200,7 @@ if __name__ == "__main__":
 
         cell_draw_size = constants.CELL_DRAW_SIZE
         # for cell in covered_path:
-        #     pygame.draw.rect(env.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 0)
+        #     pygame.draw.rect(env.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
 
         # pygame.display.flip()
 

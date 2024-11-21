@@ -141,6 +141,11 @@ class TensorboardCallback(BaseCallback):
         episode_rewards = np.mean(self.training_env.get_attr("last_episode_rewards"))
         self.logger.record("custom/episode_rewards_mean", episode_rewards)
         return True
+    
+def linear_schedule(initial_value: float):
+    def func(progress_remaining: float) -> float:
+        return progress_remaining * initial_value
+    return func
 
 def train(device):
 
@@ -150,7 +155,6 @@ def train(device):
 
     reward_callback = RewardLoggingCallback(log_dir)
 
-
     env = make_vec_env(lambda: create_env(), n_envs=4, vec_env_cls=SubprocVecEnv)
 
     # Enable custom TensorBoard logging
@@ -158,16 +162,25 @@ def train(device):
 
     # Define the PPO model with a CNN policy for processing grid-based inputs
     # model = PPO("CnnPolicy", env, verbose=1, gamma=0.95, n_epochs=20, seed=2)
+    
     # "CnnLstmPolicy"
-    # model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, gamma=0.95, n_epochs=50, ent_coef=0.1, learning_rate=3e-4, seed=constants.RANDOM_SEED, device=device)
-
-    model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=20, ent_coef=0.1, learning_rate=3e-4, seed=constants.RANDOM_SEED, device=device, tensorboard_log=log_dir)
+    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
+                            gamma=0.99, 
+                            gae_lambda=0.95,
+                            n_epochs=10, 
+                            ent_coef=0.1,
+                            clip_range=0.3,
+                            learning_rate=linear_schedule(1e-3),
+                            seed=constants.RANDOM_SEED,
+                            device=device,
+                            tensorboard_log=log_dir)
+    # model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=20, ent_coef=0.1, learning_rate=3e-4, seed=constants.RANDOM_SEED, device=device, tensorboard_log=log_dir)
 
     model.set_logger(logger)
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=70000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
@@ -179,8 +192,8 @@ def test(device):
 
     # Load the model later for evaluation
     # loaded_model = PPO.load(model_file_path)
-    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
-    loaded_model = PPO.load(model_file_path, device=device)
+    loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    # loaded_model = PPO.load(model_file_path, device=device)
 
     # Evaluate the model
     evaluate_model(loaded_model, create_env())
@@ -189,8 +202,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    # model = RecurrentPPO.load(model_file_path)
-    model = PPO.load(model_file_path)
+    model = RecurrentPPO.load(model_file_path)
+    # model = PPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation
     done = [False] * 1 #env.num_envs  # List of done flags for each environment
@@ -213,6 +226,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    check_env()
+    # check_env()
     train(device=DEVICE)
     test(device=DEVICE)

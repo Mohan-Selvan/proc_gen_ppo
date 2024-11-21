@@ -44,7 +44,7 @@ class GameWorld(gym.Env):
         self.max_frame_count = 1000
         self.iterations_per_game = 1
         self.path_randomness = path_randomness
-        self.max_distance_from_path = 5
+        self.max_distance_from_path = 6
 
         self.reset_count = 0
 
@@ -133,6 +133,7 @@ class GameWorld(gym.Env):
 
         self.frame_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
+        # self.grid = np.random.random_integers(0, 1, (self.width, self.height)).astype(np.uint8)
         self.player_pos = self.start_pos
         self.player_path_index = 0
 
@@ -170,10 +171,10 @@ class GameWorld(gym.Env):
         terminated = self.frame_count > self.max_frame_count
         truncated = False
 
-        _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-        if(highest_reachable_path_index < self.player_path_index - 10):
-            # reward = 0
-            truncated = True
+        # _, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        # if(highest_reachable_path_index < self.player_path_index - 10):
+        #     # reward = 0
+        #     truncated = True
 
         self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
         self.player_pos = self.player_path[self.player_path_index]
@@ -198,31 +199,33 @@ class GameWorld(gym.Env):
             return reward
 
         reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-
         reward *= 1000
 
-        # Checking if lava tiles are surrounded with proper cells
-        for x in range(0, self.width):
-            for y in range(0, self.height):
-                cell = (x, y)
+        hanging_cells = self.find_hanging_cells()
+        reward -= len(hanging_cells) * 100
 
-                is_reduce_reward = False
+        # # Checking if lava tiles are surrounded with proper cells
+        # for x in range(0, self.width):
+        #     for y in range(0, self.height):
+        #         cell = (x, y)
 
-                if(self.grid[cell] == constants.GRID_LAVA):
-                    for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
-                        neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
-                        if(not self.is_position_valid(neighbor_cell)):
-                            continue
-                        if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
-                            is_reduce_reward = True
-                            break
+        #         is_reduce_reward = False
+
+        #         if(self.grid[cell] == constants.GRID_LAVA):
+        #             for d in [Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
+        #                 neighbor_cell = self.get_cell_in_direction(cell, direction=d,restrict_boundary=False)
+        #                 if(not self.is_position_valid(neighbor_cell)):
+        #                     continue
+        #                 if(self.grid[neighbor_cell] == constants.GRID_EMPTY_SPACE):
+        #                     is_reduce_reward = True
+        #                     break
                     
-                    neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
-                    if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
-                        is_reduce_reward = True
+        #             neighbor_cell = self.get_cell_in_direction(cell, direction=Direction.UP, restrict_boundary=False)
+        #             if((self.is_position_valid(neighbor_cell)) and self.grid[neighbor_cell]  == constants.GRID_PLATFORM):
+        #                 is_reduce_reward = True
 
-                if(is_reduce_reward):
-                    reward -= 0.1
+        #         if(is_reduce_reward):
+        #             reward -= 0.1
 
         # lava_tile_count = (self.grid == constants.GRID_LAVA).sum()
         # reward = reward - (min(0, lava_tile_count - 10))
@@ -244,11 +247,11 @@ class GameWorld(gym.Env):
 
         # reward += (20 * (1.0 - (blocks / len(self.player_path))))
 
-        if(self.grid[self.start_pos] == constants.GRID_EMPTY_SPACE):
-            reward += 10
+        if(self.grid[self.start_pos] != constants.GRID_EMPTY_SPACE):
+            reward -= 5000
 
-        if(self.grid[self.end_pos] == constants.GRID_EMPTY_SPACE):
-            reward += 10
+        if(self.grid[self.end_pos] != constants.GRID_EMPTY_SPACE):
+            reward -= 5000
 
         return reward
 
@@ -1040,8 +1043,54 @@ class GameWorld(gym.Env):
         reachability_percentage = (highest_reached_index / (len(path) - 1)) if highest_reached_index >= 0 else 0
         return reachability_percentage, list(reachable_cells), highest_reached_index
 
-
+    def find_hanging_cells(self):
+        """
+        Find all cells in the grid that are hanging (not connected to the starting cell via empty spaces).
         
+        :param grid: 2D numpy array, where 0 represents empty spaces, and other values are obstacles.
+        :param start_cell: Tuple (x, y), the starting cell (column, row).
+        :return: List of tuples representing the coordinates of all hanging cells.
+        """
+
+        grid = self.grid
+        start_cell = self.start_pos
+
+        width, height = grid.shape
+        x_start, y_start = start_cell
+
+        if(not self.is_position_valid(start_cell)):
+            return []
+
+        # Create a visited array to track reachable cells
+        visited = np.zeros_like(grid, dtype=bool)
+        
+        # Directions for 4-connectivity (up, down, left, right)
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+        # BFS/DFS to mark reachable cells
+        def flood_fill(x, y):
+            stack = [(x, y)]
+            visited[x, y] = True
+            while stack:
+                cx, cy = stack.pop()
+                for dx, dy in directions:
+                    nx, ny = cx + dx, cy + dy
+
+                    if(not self.is_position_valid((nx, ny))):
+                       continue
+
+                    if grid[nx, ny] == constants.GRID_EMPTY_SPACE and not visited[nx, ny]:  # Check empty and unvisited
+                        visited[nx, ny] = True
+                        stack.append((nx, ny))
+
+        # Start flood fill from the starting cell
+        flood_fill(x_start, y_start)
+
+        # Find all hanging cells: Unvisited empty cells
+        hanging_cells = [(x, y) for x in range(width) for y in range(height) if grid[x, y] == constants.GRID_EMPTY_SPACE and not visited[x, y]]
+
+        return hanging_cells
+            
 
     def save_screen_image(self, full_path):
         pygame.image.save(self.display, full_path)

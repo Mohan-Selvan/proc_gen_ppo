@@ -5,45 +5,58 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from sb3_contrib.common.recurrent.policies import RecurrentActorCriticCnnPolicy
 from sb3_contrib import RecurrentPPO
 
+
 class CustomCnnExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 256):
-        # Extract the shape of the input image from observation space
-        super(CustomCnnExtractor, self).__init__(observation_space, features_dim)
-        n_input_channels = observation_space.shape[0]
+    """
+    Custom CNN feature extractor for observations with shape (3, 16, 16).
+    """
 
-        # Define your custom CNN layers
+    def __init__(self, observation_space, features_dim=256):
+        super().__init__(observation_space, features_dim)
+
+        # Calculate the number of input channels from the observation space
+        n_channels = observation_space.shape[0]
+
+        # Define the CNN layers
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(n_channels, 32, kernel_size=2, stride=1, padding=1),  # Output: (32, 16, 16)
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            # nn.MaxPool2d(kernel_size=2, stride=2),                          # Output: (32, 8, 8)
+
+            nn.Conv2d(32, 64, kernel_size=2, stride=1, padding=1),          # Output: (64, 8, 8)
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Flatten()
+            # nn.MaxPool2d(kernel_size=2, stride=2),                          # Output: (64, 4, 4)
+
+            nn.Flatten(),  # Flatten the spatial dimensions
         )
 
-        # Compute the shape of the output tensor after the CNN layers
+        # Compute feature dimension after the CNN
         with th.no_grad():
-            sample_input = th.as_tensor(observation_space.sample()[None]).float()
-            cnn_output_dim = self.cnn(sample_input).shape[1]
+            dummy_input = th.zeros(1, *observation_space.shape)
+            n_flatten = self.cnn(dummy_input).shape[1]
 
-        # Define a fully connected layer to get the final feature dimensions
-        self.linear = nn.Sequential(
-            nn.Linear(cnn_output_dim, features_dim),
-            nn.ReLU()
+        # Define the final fully connected layer
+        self.fc = nn.Sequential(
+            nn.Linear(n_flatten, features_dim),
+            nn.ReLU(),
         )
 
-    def forward(self, observations: th.Tensor) -> th.Tensor:
-        # Pass the observation through the CNN and the final fully connected layer
-        return self.linear(self.cnn(observations))
-    
+        self._features_dim = features_dim
 
-class CustomCnnLstmPolicy(RecurrentActorCriticCnnPolicy):
+    def forward(self, observations):
+        x = self.cnn(observations)
+        return self.fc(x)
+
+
+class CustomRecurrentCnnPolicy(RecurrentActorCriticCnnPolicy):
+    """
+    Custom Recurrent CNN Policy for Recurrent PPO with observation space of (3, 16, 16).
+    """
+
     def __init__(self, *args, **kwargs):
-        # Pass the custom CNN feature extractor to the policy
-        super(CustomCnnLstmPolicy, self).__init__(
+        super().__init__(
             *args,
-            **kwargs,
             features_extractor_class=CustomCnnExtractor,
-            features_extractor_kwargs=dict(features_dim=256)  # Set the desired feature dimensions
+            features_extractor_kwargs={"features_dim": 256},
+            **kwargs,
         )
