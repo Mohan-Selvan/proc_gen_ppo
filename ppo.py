@@ -173,10 +173,10 @@ def train(device):
                             policy_kwargs=dict(normalize_images=False, ortho_init=True),
                             gamma=0.99, 
                             gae_lambda=0.95,
-                            n_epochs=10, 
+                            n_epochs=20, 
                             ent_coef=0.1,
                             clip_range=0.3,
-                            learning_rate=3e-4,
+                            learning_rate=1e-3,
                             normalize_advantage=True,
                             seed=constants.RANDOM_SEED,
                             device=device,
@@ -187,7 +187,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=70000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model

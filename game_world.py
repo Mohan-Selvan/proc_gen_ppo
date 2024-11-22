@@ -226,7 +226,7 @@ class GameWorld(gym.Env):
         terminated = self.frame_count > self.max_frame_count
         truncated = False
 
-        _, reachable_cells, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        reachability_percent, reachable_cells, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
         if(highest_reachable_path_index < self.player_path_index - 10):
             # reward = 0
             truncated = True
@@ -242,6 +242,11 @@ class GameWorld(gym.Env):
                     found = True
                     break
         truncated = not found
+
+        if(not found):
+            penalty = ((1.0 - reachability_percent) * 2)
+            reward -= penalty
+            print(f"Reachability : {reachability_percent}, Penalty : {penalty}")
         
         self.last_player_pos = self.player_pos
         self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
@@ -250,11 +255,11 @@ class GameWorld(gym.Env):
         self.render(True)
         self.frame_count += 1
 
-        if(terminated or truncated):
-            reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-            if(reachability >= 0.98):
-                self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
-                print("Randomizing path")        
+        # if(terminated or truncated):
+        #     reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        #     if(reachability >= 0.98):
+        #         self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
+        #         print("Randomizing path")        
 
         return state, reward, terminated, truncated, self._get_info() 
 
@@ -266,10 +271,11 @@ class GameWorld(gym.Env):
             return reward
 
         reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-        return reward
 
-        # hanging_cells = self.find_hanging_cells()
-        # reward -= len(hanging_cells) * 100
+        hanging_cells = self.find_hanging_cells()
+        reward -= len(hanging_cells)
+
+        return reward
 
         # # Checking if lava tiles are surrounded with proper cells
         # for x in range(0, self.width):
