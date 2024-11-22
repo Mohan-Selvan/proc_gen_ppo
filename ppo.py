@@ -233,6 +233,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    check_env()
-    train(device=DEVICE)
+    # check_env()
+    # train(device=DEVICE)
     test(device=DEVICE)

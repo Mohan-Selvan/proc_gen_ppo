@@ -272,8 +272,8 @@ class GameWorld(gym.Env):
 
         reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
 
-        hanging_cells = self.find_hanging_cells()
-        reward -= len(hanging_cells)
+        # hanging_cells = self.find_hanging_cells()
+        # reward -= len(hanging_cells)
 
         return reward
 
@@ -445,7 +445,7 @@ class GameWorld(gym.Env):
             pygame.draw.rect(self.display, color, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 0)
 
         for cell in self.coverable_path:
-            pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 0)
+            pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
 
         if(flip_display):
             pygame.display.flip()
