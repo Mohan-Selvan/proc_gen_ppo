@@ -176,7 +176,7 @@ def train(device):
                             n_epochs=10, 
                             ent_coef=0.1,
                             clip_range=0.3,
-                            learning_rate=linear_schedule(3e-4),
+                            learning_rate=3e-4,
                             normalize_advantage=True,
                             seed=constants.RANDOM_SEED,
                             device=device,
@@ -187,7 +187,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=50000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
