@@ -3,6 +3,7 @@ import numpy as np
 import math
 import random
 import helper
+import pickle
 
 import constants
 
@@ -58,11 +59,14 @@ class GameWorld(gym.Env):
         self.last_action_mask = np.full(self.mask_shape, fill_value=constants.GRID_PLATFORM, dtype=np.uint8)
         self.last_player_pos = self.player_pos
 
+        # Trackers
+        self.train_level_count = 0
+
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
         # self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), seed=random_seed, dtype=np.uint8
         # )
 
-        self.action_space = gym.spaces.Box(low=0.0, high=(num_tile_actions - 1), shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.uint8
+        self.action_space = gym.spaces.Box(low=0.0, high=(num_tile_actions - 1), shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.float64
         )
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
@@ -255,11 +259,21 @@ class GameWorld(gym.Env):
         self.render(True)
         self.frame_count += 1
 
-        # if(terminated or truncated):
-        #     reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-        #     if(reachability >= 0.98):
-        #         self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
-        #         print("Randomizing path")        
+        if(terminated or truncated):
+            reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+            if(reachability >= 0.99):
+
+                # Exporting valid levels.
+                self.train_level_count += 1
+                self.save_screen_image(f"./saves/train_levels/level_{self.train_level_count}_img.png")
+                with open(f'./saves/train_levels/level_{self.train_level_count}_path', 'wb') as fp:
+                            np.save(fp, self.player_path)
+                with open(f'./saves/train_levels/level_{self.train_level_count}_grid', 'wb') as fp:
+                            np.save(fp, self.grid)
+                
+                # Randomizing player path.
+                self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
+                print("Randomizing path")        
 
         return state, reward, terminated, truncated, self._get_info() 
 

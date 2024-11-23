@@ -169,13 +169,15 @@ def train(device):
     
     
     # "CnnLstmPolicy"
-    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
-                            policy_kwargs=dict(normalize_images=False, ortho_init=True),
+    model = RecurrentPPO(custom_policy_lstm.CustomRecurrentPPOPolicy, env, verbose=1, 
+                            policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=128),
                             gamma=0.99, 
                             gae_lambda=0.95,
                             n_epochs=20, 
                             ent_coef=0.1,
                             clip_range=0.3,
+                            max_grad_norm=0.5,
+                            vf_coef=0.5,
                             learning_rate=1e-3,
                             normalize_advantage=True,
                             seed=constants.RANDOM_SEED,
@@ -233,6 +235,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    # check_env()
-    # train(device=DEVICE)
+    check_env()
+    train(device=DEVICE)
     test(device=DEVICE)
