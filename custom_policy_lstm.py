@@ -21,11 +21,11 @@ class CustomSmallCnnFeatureExtractor(BaseFeaturesExtractor):
         
         # A smaller and simpler CNN
         self.cnn = nn.Sequential(
-            nn.Conv2d(obs_shape[0], 16, kernel_size=3, stride=1, padding=1),  # Output: (16, 15, 15)
+            nn.Conv2d(obs_shape[0], 16, kernel_size=1, stride=1, padding=1),  # Output: (16, 15, 15)
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),            # Output: (32, 15, 15)
+            nn.Conv2d(16, 32, kernel_size=1, stride=1, padding=1),            # Output: (32, 15, 15)
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),            # Output: (64, 8, 8)
+            nn.Conv2d(32, 64, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
             nn.ReLU(),
             nn.Flatten()                                                     # Output: (64 * 8 * 8)
         )
