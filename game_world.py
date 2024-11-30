@@ -50,6 +50,7 @@ class GameWorld(gym.Env):
         self.path_randomness = path_randomness
         self.max_distance_from_path = 6
         self.reset_count = 0
+        self.total_number_of_possible_cells_that_can_be_modified = 1
 
         self.observation_window_shape = observation_window_shape
         self.mask_shape = mask_shape
@@ -247,10 +248,10 @@ class GameWorld(gym.Env):
                     break
         truncated = not found
 
-        if(not found):
-            penalty = ((1.0 - reachability_percent) * 2)
-            reward -= penalty
-            print(f"Reachability : {reachability_percent}, Penalty : {penalty}")
+        # if(not found):
+        #     penalty = ((1.0 - reachability_percent))
+        #     reward -= penalty
+        #     print(f"Reachability : {reachability_percent}, Penalty : {penalty}")
         
         self.last_player_pos = self.player_pos
         self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
@@ -284,10 +285,32 @@ class GameWorld(gym.Env):
             reward = -10000
             return reward
 
-        reward, self.coverable_path, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        reward, reachable_cells, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        self.coverable_path = reachable_cells
 
-        # hanging_cells = self.find_hanging_cells()
-        # reward -= len(hanging_cells)
+        reward *= 5
+
+        hanging_cells = self.find_hanging_cells()
+        reward += ((1.0 - (len(hanging_cells) / self.total_number_of_possible_cells_that_can_be_modified)) * 2)
+
+
+        def can_stand_on(cell):
+            below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
+            if(not self.is_position_valid(below_cell)):
+                return False
+            return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
+        
+
+        invalid_cells = []
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                cell = (x, y)
+                if((cell not in reachable_cells) and can_stand_on(cell)):
+                    invalid_cells.append(cell)
+
+        reward += ((1.0 - (len(invalid_cells) / self.total_number_of_possible_cells_that_can_be_modified)) * 3)
+
+        reward += (self.player_path_index / len(self.player_path)) * 4
 
         return reward
 
@@ -403,6 +426,25 @@ class GameWorld(gym.Env):
         self.player_pos = self.start_pos
         self.max_frame_count = (len(self.player_path) - 2) * self.iterations_per_game
 
+        unique_cells = []
+
+        for path_cell in self.player_path:
+
+            posX, posY = path_cell
+            pivotX, pivotY = (math.floor(self.mask_shape[0] / 2), math.floor(self.mask_shape[1] / 2))
+            for local_X in range(0, self.mask_shape[0]):
+                for local_Y in range(0, self.mask_shape[1]):
+                    x, y = posX + local_X - pivotX, posY + local_Y - pivotY
+                    cell = (x, y)
+                    if(cell not in unique_cells):
+                        unique_cells.append(cell)
+
+        self.total_number_of_possible_cells_that_can_be_modified = len(unique_cells)
+        print(f"Total number of cells that can be modified this level : {self.total_number_of_possible_cells_that_can_be_modified}")
+
+
+
+
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
         self.render(flip_display)
@@ -431,7 +473,7 @@ class GameWorld(gym.Env):
         posX, posY = self.player_pos
         cell_draw_size = constants.CELL_DRAW_SIZE
         mask_to_draw = self.mask
-        pivotX, pivotY = (math.floor(mask_to_draw.shape[0] / 2), math.floor(mask_to_draw.shape[0] / 2))
+        pivotX, pivotY = (math.floor(mask_to_draw.shape[0] / 2), math.floor(mask_to_draw.shape[1] / 2))
         for local_X in range(0, mask_to_draw.shape[0]):
             for local_Y in range(0, mask_to_draw.shape[1]):
                 x, y = posX + local_X - pivotX, posY + local_Y - pivotY

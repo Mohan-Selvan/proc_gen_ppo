@@ -23,6 +23,8 @@ if __name__ == "__main__":
                     num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL, 
                     path_randomness=0.1, 
                     random_seed=2)
+    
+    env.reset()
 
     is_path_define_mode = True
     path_define_cell = env.start_pos
