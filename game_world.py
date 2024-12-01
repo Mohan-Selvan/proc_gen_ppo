@@ -67,12 +67,12 @@ class GameWorld(gym.Env):
         # self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), seed=random_seed, dtype=np.uint8
         # )
 
-        self.action_space = gym.spaces.Box(low=0.0, high=(num_tile_actions - 1), shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.float64
+        self.action_space = gym.spaces.Box(low=0.0, high=(num_tile_actions - 1), shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.float32
         )
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0, high=1, shape=(5, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float64
+            low=0.0, high=1.0, shape=(3, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float32
         )
 
         self.set_player_path(player_path)
@@ -118,9 +118,9 @@ class GameWorld(gym.Env):
         window_shape = self.observation_window_shape
 
         window_normalized_grid = np.full(window_shape, constants.GRID_PLATFORM, dtype = np.uint8)
-        window_ohe_player_path = np.full(window_shape, 0, dtype = np.uint8)
-        window_ohe_mask_pos = np.full(window_shape, 0, dtype = np.uint8)
+        window_ohe_player_path = np.full(window_shape, 0, dtype = np.float32)
         window_ohe_reachable_points = np.full(window_shape, 0, dtype=np.uint8)
+        window_ohe_mask_pos = np.full(window_shape, 0, dtype = np.uint8)
         window_last_mask_values = np.full(window_shape, constants.TILE_ACTION_IGNORE, dtype=np.uint8)
 
         # Current Mask positions
@@ -149,7 +149,7 @@ class GameWorld(gym.Env):
                 if(self.is_position_valid(world_pos)):
                     window_normalized_grid[x, y] = self.grid[world_pos]
                 if(world_pos in self.player_path):
-                    window_ohe_player_path[x, y] = 1 
+                    window_ohe_player_path[x, y] = 1 if ((self.player_path.index(world_pos)) >= self.player_path_index) else 0.5
                 if(world_pos in self.coverable_path):
                     window_ohe_reachable_points[x, y] = 1
                 if(world_pos in mask_positions):
@@ -161,12 +161,14 @@ class GameWorld(gym.Env):
         window_normalized_grid = (window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1))
         window_last_mask_values = (window_last_mask_values / (constants.NUMBER_OF_ACTIONS_PER_CELL - 1))
    
-        state = np.stack([window_normalized_grid.astype(np.float64), 
-                          window_ohe_player_path.astype(np.float64), 
-                          window_ohe_reachable_points.astype(np.float64), 
-                          window_ohe_mask_pos.astype(np.float64), 
-                          window_last_mask_values.astype(np.float64)
+        state = np.stack([window_normalized_grid.astype(np.float32), 
+                          window_ohe_player_path.astype(np.float32), 
+                          window_ohe_reachable_points.astype(np.float32), 
+                          #window_ohe_mask_pos.astype(np.float64), 
+                          #window_last_mask_values.astype(np.float64)
                         ],axis=0) #window_ohe_reachable_points * 255
+        
+        # print(state)
 
         obs = state
         return obs

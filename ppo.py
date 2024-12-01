@@ -170,7 +170,7 @@ def train(device):
     
     # "CnnLstmPolicy"
     model = RecurrentPPO(custom_policy_lstm.CustomRecurrentPPOPolicy, env, verbose=1, 
-                            policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=128),
+                            policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=256),
                             gamma=0.99, 
                             gae_lambda=0.95,
                             n_epochs=20, 
@@ -183,7 +183,17 @@ def train(device):
                             seed=constants.RANDOM_SEED,
                             device=device,
                             tensorboard_log=log_dir)
-    # model = PPO(custom_policy_ppo.CustomCnnPolicy, env, verbose=1, gamma=0.95, n_epochs=20, ent_coef=0.1, learning_rate=3e-4, seed=constants.RANDOM_SEED, device=device, tensorboard_log=log_dir)
+
+    # model = PPO(custom_policy_ppo.CustomCnnPolicy, 
+    #             env, 
+    #             verbose=1,
+    #             gamma=0.99,
+    #             n_epochs=20,
+    #             ent_coef=0.1,
+    #             learning_rate=1e-3,
+    #             seed=constants.RANDOM_SEED,
+    #             device=device,
+    #             tensorboard_log=log_dir)
 
     model.set_logger(logger)
 

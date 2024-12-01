@@ -17,7 +17,7 @@ class CustomSmallCnnFeatureExtractor(BaseFeaturesExtractor):
         
         # Validate the observation space
         obs_shape = observation_space.shape
-        assert obs_shape == (5, 15, 15), f"Expected observation space (5, 15, 15), got {obs_shape}"
+        #assert obs_shape == (3, 15, 15), f"Expected observation space (5, 15, 15), got {obs_shape}"
         
         # A smaller and simpler CNN
         self.cnn = nn.Sequential(
@@ -26,6 +26,10 @@ class CustomSmallCnnFeatureExtractor(BaseFeaturesExtractor):
             nn.Conv2d(16, 32, kernel_size=1, stride=1, padding=1),            # Output: (32, 15, 15)
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
             nn.ReLU(),
             nn.Flatten()                                                     # Output: (64 * 8 * 8)
         )
