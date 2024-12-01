@@ -169,7 +169,7 @@ def train(device):
     
     
     # "CnnLstmPolicy"
-    model = RecurrentPPO(custom_policy_lstm.CustomRecurrentPPOPolicy, env, verbose=1, 
+    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
                             policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=256),
                             gamma=0.99, 
                             gae_lambda=0.95,
@@ -178,7 +178,7 @@ def train(device):
                             clip_range=0.3,
                             max_grad_norm=0.5,
                             vf_coef=0.5,
-                            learning_rate=1e-3,
+                            learning_rate=3e-4,
                             normalize_advantage=True,
                             seed=constants.RANDOM_SEED,
                             device=device,
@@ -199,7 +199,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=150000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
