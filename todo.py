@@ -15,3 +15,6 @@
 
 # Try one hot encoding of 5x5 mask and DQN
 # Try TRPO
+
+# Find last actionable cell in player path dynamically
+# Test with PPO, RecPPO and TRPO with 2 actions, 5 step forward

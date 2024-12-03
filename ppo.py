@@ -184,7 +184,7 @@ def train(device):
     #                         device=device,
     #                         tensorboard_log=log_dir)
 
-    model = PPO(custom_policy_ppo.CustomCnnPolicy, 
+    model = PPO("MlpPolicy", 
                 env, 
                 verbose=1,
                 gamma=0.99,
