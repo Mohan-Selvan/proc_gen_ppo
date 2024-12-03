@@ -293,7 +293,7 @@ class GameWorld(gym.Env):
         
         if(is_furthest_cell_in_action_mask_reachable):
             self.last_player_pos = self.player_pos
-            self.player_path_index = (self.player_path_index + 1)
+            self.player_path_index = (self.player_path_index + 5)
             if(self.player_path_index >= len(self.player_path)):
                 self.player_path_index = (len(self.player_path) - 1)
             self.player_pos = self.player_path[self.player_path_index]

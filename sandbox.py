@@ -13,6 +13,7 @@ import numpy as np
 from collections import deque
 
 import ppo
+import exporter
 
 if __name__ == "__main__":
 
@@ -172,8 +173,12 @@ if __name__ == "__main__":
                         env.coverable_path = hanging_cells
                         print("Key 7")
 
-                    if(event.key == pygame.K_k):
+                    if(event.key == pygame.K_8):
+                        print("Key 8")
+                        data = {"grid":env.grid.tolist() }
+                        exporter.write_dictionary_to_file(data)
 
+                    if(event.key == pygame.K_k):
                         covered_path = env.find_path(env.start_pos, env.end_pos)
                         print(f"Cells : \n{covered_path}")
                         # percent, covered_path = env.player_path_coverage()
