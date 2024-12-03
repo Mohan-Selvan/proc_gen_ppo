@@ -12,3 +12,6 @@
 
 # Check determinism in prediction? Test with deterministic set to False
 # Save paths and according playable levels during training.
+
+# Try one hot encoding of 5x5 mask and DQN
+# Try TRPO

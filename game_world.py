@@ -217,7 +217,7 @@ class GameWorld(gym.Env):
         pygame.event.get()
         
         self._update(False)
-        reward_before_action = self.get_current_reward()
+        # reward_before_action = self.get_current_reward()
 
         # Deciding action
         self.mask = action_mask
@@ -225,20 +225,56 @@ class GameWorld(gym.Env):
         self.last_action_mask = action_mask
         
         state = self._get_obs()
-        reward_after_action = self.get_current_reward()
-        reward = (reward_after_action - reward_before_action)
+        # reward_after_action = self.get_current_reward()
+        # reward = (reward_after_action - reward_before_action)
 
         # print(f"Reward, B: {reward_before_action} A: {reward_after_action}")
 
         terminated = self.frame_count > self.max_frame_count
         truncated = False
 
+        # Checking if any reachable points are in mask area
+        # found = False
+        # pivotX, pivotY = (math.floor(self.mask_shape[0] / 2), math.floor(self.mask_shape[1] / 2))
+        # posX, posY = self.player_pos
+        # for x in range(0, self.mask_shape[0]):
+        #     for y in range(0, self.mask_shape[1]):
+        #         grid_pos = posX + x - pivotX, posY + y - pivotY
+        #         if(grid_pos in reachable_cells):
+        #             found = True
+        #             break
+        # truncated = not found
+
+        # if(not found):
+        #     penalty = ((1.0 - reachability_percent))
+        #     reward -= penalty
+        #     print(f"Reachability : {reachability_percent}, Penalty : {penalty}")
+
         reachability_percent, reachable_cells, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
         if(highest_reachable_path_index < self.player_path_index - 10):
             # reward = 0
             truncated = True
 
-        # Checking if any reachable points are in mask area
+        self.coverable_path = reachable_cells
+
+        # Cells in action mask
+        cells_in_action_mask = self.get_cells_in_action_mask_region()
+
+        # Finding the furtherest player path cell in the action mask region.
+        furthest_cell_action_mask = None
+        for cell in reversed(self.player_path):
+            if(cell in cells_in_action_mask):
+                furthest_cell_action_mask = cell
+                break
+        
+        is_furthest_cell_in_action_mask_reachable = (not (furthest_cell_action_mask is None)) and (furthest_cell_action_mask in reachable_cells)
+
+        if(is_furthest_cell_in_action_mask_reachable):
+            reward = 1
+        else:
+            reward = 0   
+
+        
         found = False
         pivotX, pivotY = (math.floor(self.mask_shape[0] / 2), math.floor(self.mask_shape[1] / 2))
         posX, posY = self.player_pos
@@ -248,16 +284,25 @@ class GameWorld(gym.Env):
                 if(grid_pos in reachable_cells):
                     found = True
                     break
-        truncated = not found
-
-        # if(not found):
-        #     penalty = ((1.0 - reachability_percent))
-        #     reward -= penalty
-        #     print(f"Reachability : {reachability_percent}, Penalty : {penalty}")
         
-        self.last_player_pos = self.player_pos
-        self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
-        self.player_pos = self.player_path[self.player_path_index]
+        if(not found):
+            reward = -1
+
+        print(f"Is furthest cell reachable = {is_furthest_cell_in_action_mask_reachable},\nFurthest cell in action mask = {furthest_cell_action_mask},\nReward = {reward}\n ---------------------------------------------")
+
+        
+        if(is_furthest_cell_in_action_mask_reachable):
+            self.last_player_pos = self.player_pos
+            self.player_path_index = (self.player_path_index + 1)
+            if(self.player_path_index >= len(self.player_path)):
+                self.player_path_index = (len(self.player_path) - 1)
+            self.player_pos = self.player_path[self.player_path_index]
+
+        # Move agent along path
+        # self.last_player_pos = self.player_pos
+        # self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
+        # self.player_pos = self.player_path[self.player_path_index]
+
 
         self.render(True)
         self.frame_count += 1
@@ -1224,6 +1269,20 @@ class GameWorld(gym.Env):
 
         return hanging_cells
             
+    def get_cells_in_action_mask_region(self):
+
+        cells_in_mask = []
+
+        posX, posY = self.player_pos
+        mask_to_draw = self.mask
+        pivotX, pivotY = (math.floor(mask_to_draw.shape[0] / 2), math.floor(mask_to_draw.shape[1] / 2))
+        for local_X in range(0, mask_to_draw.shape[0]):
+            for local_Y in range(0, mask_to_draw.shape[1]):
+                x, y = posX + local_X - pivotX, posY + local_Y - pivotY
+                cells_in_mask.append((x, y))
+
+        return cells_in_mask
+
     def save_screen_image(self, full_path):
         pygame.image.save(self.display, full_path)
         print(f"Saved image : {full_path}")
