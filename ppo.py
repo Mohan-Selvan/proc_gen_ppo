@@ -47,7 +47,7 @@ def evaluate_model(model, env, num_episodes=10):
         
         while not all(done):  # Continue until all environments are done
             # Get action from the model
-            action, _ = model.predict(obs, deterministic=True)
+            action, _ = model.predict(obs, deterministic=False)
 
             # Apply the action to the environment
             # Here, action is a batch of actions for each environment
@@ -190,7 +190,7 @@ def train(device):
                 gamma=0.99,
                 n_epochs=20,
                 ent_coef=0.1,
-                learning_rate=1e-3,
+                learning_rate=3e-4,
                 seed=constants.RANDOM_SEED,
                 device=device,
                 tensorboard_log=log_dir)

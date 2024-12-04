@@ -290,7 +290,7 @@ class GameWorld(gym.Env):
         if(not found):
             reward = -1
 
-        print(f"Is furthest cell reachable = {is_furthest_cell_in_action_mask_reachable},\nFurthest cell in action mask = {furthest_cell_action_mask},\nReward = {reward}\n ---------------------------------------------")
+        # print(f"Is furthest cell reachable = {is_furthest_cell_in_action_mask_reachable},\nFurthest cell in action mask = {furthest_cell_action_mask},\nReward = {reward}\n ---------------------------------------------")
 
         
         if(is_furthest_cell_in_action_mask_reachable):
