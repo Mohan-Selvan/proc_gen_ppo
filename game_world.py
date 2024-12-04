@@ -272,9 +272,9 @@ class GameWorld(gym.Env):
         is_furthest_cell_in_action_mask_reachable = (not (furthest_cell_action_mask is None)) and (furthest_cell_action_mask in reachable_cells)
 
         if(is_furthest_cell_in_action_mask_reachable):
-            reward = 1
+            reward = 3
         else:
-            reward = 0   
+            reward = -0.5   
 
         
         found = False
