@@ -290,7 +290,6 @@ class GameWorld(gym.Env):
 
         # print(f"Is furthest cell reachable = {is_furthest_cell_in_action_mask_reachable},\nFurthest cell in action mask = {furthest_cell_action_mask},\nReward = {reward}\n ---------------------------------------------")
 
-        
         if(is_furthest_cell_in_action_mask_reachable):
             self.last_player_pos = self.player_pos
             self.player_path_index = (self.player_path_index + 5)
