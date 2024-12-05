@@ -20,3 +20,4 @@
 # Test with PPO, RecPPO and TRPO with 2 actions, 5 step forward
 # Move agent forward even irrespective of reachability condition when testing.
 # Implement increasingly complex path.
+# Check hidden layer parameter in policy dict.

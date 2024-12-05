@@ -72,7 +72,7 @@ class GameWorld(gym.Env):
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0.0, high=1.0, shape=([self.observation_window_shape[0] * self.observation_window_shape[1]]), seed=random_seed, dtype=np.float32
+            low=0.0, high=1.0, shape=(3, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float32
         )
 
         self.set_player_path(player_path)
@@ -171,8 +171,6 @@ class GameWorld(gym.Env):
         # print(state)
 
         obs = state
-
-        obs = window_ohe_reachable_points.astype(np.float32).flatten()
         return obs
     
     def _get_info(self):
