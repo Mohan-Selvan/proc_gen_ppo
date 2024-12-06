@@ -169,39 +169,39 @@ def train(device):
     
     
     # "CnnLstmPolicy"
-    # model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
-    #                         policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=256),
-    #                         gamma=0.99, 
-    #                         gae_lambda=0.95,
-    #                         n_epochs=50, 
-    #                         ent_coef=0.1,
-    #                         clip_range=0.3,
-    #                         max_grad_norm=0.5,
-    #                         vf_coef=0.5,
-    #                         learning_rate=3e-4,
-    #                         normalize_advantage=True,
-    #                         seed=constants.RANDOM_SEED,
-    #                         device=device,
-    #                         tensorboard_log=log_dir)
+    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
+                            policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=512),
+                            gamma=0.99, 
+                            gae_lambda=0.95,
+                            n_epochs=20, 
+                            ent_coef=0.1,
+                            clip_range=0.3,
+                            max_grad_norm=0.5,
+                            vf_coef=0.5,
+                            learning_rate=3e-4,
+                            normalize_advantage=True,
+                            seed=constants.RANDOM_SEED,
+                            device=device,
+                            tensorboard_log=log_dir)
 
-    model = PPO("CnnPolicy", 
-                env, 
-                verbose=1,
-                policy_kwargs=dict(normalize_images=False, ortho_init=True),
-                gamma=0.99,
-                n_epochs=10,
-                ent_coef=0.1,
-                clip_range=0.3,
-                learning_rate=1e-3,
-                seed=constants.RANDOM_SEED,
-                device=device,
-                tensorboard_log=log_dir)
+    # model = PPO("MlpPolicy", 
+    #             env, 
+    #             verbose=1,
+    #             policy_kwargs=dict(normalize_images=False, ortho_init=True),
+    #             gamma=0.99,
+    #             n_epochs=10,
+    #             ent_coef=0.1,
+    #             clip_range=0.3,
+    #             learning_rate=3e-4,
+    #             seed=constants.RANDOM_SEED,
+    #             device=device,
+    #             tensorboard_log=log_dir)
 
     model.set_logger(logger)
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=150000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=100000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
@@ -213,8 +213,8 @@ def test(device):
 
     # Load the model later for evaluation
     # loaded_model = PPO.load(model_file_path)
-    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
-    loaded_model = PPO.load(model_file_path, device=device)
+    loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    # loaded_model = PPO.load(model_file_path, device=device)
 
     # Evaluate the model
     evaluate_model(loaded_model, create_env())
@@ -223,8 +223,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    # model = RecurrentPPO.load(model_file_path)
-    model = PPO.load(model_file_path)
+    model = RecurrentPPO.load(model_file_path)
+    # model = PPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation
     done = [False] * 1 #env.num_envs  # List of done flags for each environment
@@ -247,6 +247,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    check_env()
+    # check_env()
     train(device=DEVICE)
     test(device=DEVICE)

@@ -175,8 +175,8 @@ if __name__ == "__main__":
 
                     if(event.key == pygame.K_8):
                         print("Key 8")
-                        data = {"grid":env.grid.tolist() }
-                        exporter.write_dictionary_to_file(data)
+                        exporter.export_env(env, "./data.json")
+                        
 
                     if(event.key == pygame.K_k):
                         covered_path = env.find_path(env.start_pos, env.end_pos)

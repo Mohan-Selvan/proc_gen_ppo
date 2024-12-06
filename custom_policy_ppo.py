@@ -23,7 +23,9 @@ class SmallObservationCNN(BaseFeaturesExtractor):
         
         # Custom CNN for small input
         self.cnn = nn.Sequential(
-            nn.Conv2d(obs_shape[0], 8, kernel_size=1, stride=1, padding=1),  # Output: (16, 15, 15)
+            nn.Conv2d(obs_shape[0], 8, kernel_size=1, stride=1, padding=0),  # Output: (16, 15, 15)
+            nn.ReLU(),
+            nn.Conv2d(8, 8, kernel_size=1, stride=1, padding=0),  # Output: (16, 15, 15)
             nn.ReLU(),
             # nn.Conv2d(16, 32, kernel_size=1, stride=2, padding=1),            # Output: (32, 8, 8)
             # nn.ReLU(),
@@ -38,7 +40,9 @@ class SmallObservationCNN(BaseFeaturesExtractor):
         
         # Fully connected layer to match `features_dim`
         self.fc = nn.Sequential(
-            nn.Linear(n_flatten, features_dim),
+            nn.Linear(n_flatten, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
             nn.ReLU()
         )
 

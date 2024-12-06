@@ -15,6 +15,7 @@ from typing import Optional
 
 import gymnasium as gym
 import sys
+import exporter
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -45,7 +46,7 @@ class GameWorld(gym.Env):
         self.mask = np.full(mask_shape, 0, dtype=np.uint8)
 
         self.player_path = path_list
-        self.max_frame_count = 1000
+        self.max_frame_count = 10000
         self.iterations_per_game = 1
         self.path_randomness = path_randomness
         self.max_distance_from_path = 6
@@ -161,9 +162,9 @@ class GameWorld(gym.Env):
         window_normalized_grid = (window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1))
         window_last_mask_values = (window_last_mask_values / (constants.NUMBER_OF_ACTIONS_PER_CELL - 1))
    
-        state = np.stack([window_normalized_grid.astype(np.float32), 
-                          window_ohe_player_path.astype(np.float32), 
-                          window_ohe_reachable_points.astype(np.float32), 
+        state = np.stack([window_normalized_grid.astype(np.float32).T, 
+                          window_ohe_player_path.astype(np.float32).T, 
+                          window_ohe_reachable_points.astype(np.float32).T, 
                           #window_ohe_mask_pos.astype(np.float64), 
                           #window_last_mask_values.astype(np.float64)
                         ],axis=0) #window_ohe_reachable_points * 255
@@ -250,10 +251,12 @@ class GameWorld(gym.Env):
         #     reward -= penalty
         #     print(f"Reachability : {reachability_percent}, Penalty : {penalty}")
 
+        ##############################################################################
+
         reachability_percent, reachable_cells, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-        if(highest_reachable_path_index < self.player_path_index - 10):
-            # reward = 0
-            truncated = True
+        # if(highest_reachable_path_index < self.player_path_index - 10):
+        #     # reward = 0
+        #     truncated = True
 
         self.coverable_path = reachable_cells
 
@@ -272,7 +275,7 @@ class GameWorld(gym.Env):
         if(is_furthest_cell_in_action_mask_reachable):
             reward = 3
         else:
-            reward = -0.5   
+            reward = -0.2
 
         
         found = False
@@ -288,8 +291,6 @@ class GameWorld(gym.Env):
         if(not found):
             reward = -1
 
-        # print(f"Is furthest cell reachable = {is_furthest_cell_in_action_mask_reachable},\nFurthest cell in action mask = {furthest_cell_action_mask},\nReward = {reward}\n ---------------------------------------------")
-
         if(is_furthest_cell_in_action_mask_reachable):
             self.last_player_pos = self.player_pos
             self.player_path_index = (self.player_path_index + 5)
@@ -297,10 +298,36 @@ class GameWorld(gym.Env):
                 self.player_path_index = (len(self.player_path) - 1)
             self.player_pos = self.player_path[self.player_path_index]
 
-        # Move agent along path
-        # self.last_player_pos = self.player_pos
-        # self.player_path_index = (self.player_path_index + 1) % len(self.player_path)
-        # self.player_pos = self.player_path[self.player_path_index]
+        ##############################################################################
+
+        # reward = 0
+
+        # cells_in_action_mask = self.get_cells_in_action_mask_region()
+        # for cell in cells_in_action_mask:
+        #     if(self.grid[cell] == constants.GRID_EMPTY_SPACE and (cell in self.player_path)):
+        #         reward += 0.2
+        #     if(self.grid[cell] == constants.GRID_PLATFORM and (cell not in self.player_path)):
+        #         reward += 0.1
+        #     else:
+        #         reward -= 0
+
+        # player_path_cells_in_action_mask = []
+        # for cell in cells_in_action_mask:
+        #     if(cell in self.player_path):
+        #         player_path_cells_in_action_mask.append(cell)
+
+        # is_all_pp_cell_empty = True
+        # for cell in player_path_cells_in_action_mask:
+        #     if(self.grid[cell] != constants.GRID_EMPTY_SPACE):
+        #         is_all_pp_cell_empty = False
+
+        # # Move agent along path
+        # if(is_all_pp_cell_empty):
+        #     self.last_player_pos = self.player_pos
+        #     self.player_path_index = (self.player_path_index + 5) % len(self.player_path)
+        #     self.player_pos = self.player_path[self.player_path_index]
+
+        ##############################################################################
 
 
         self.render(True)
@@ -314,9 +341,11 @@ class GameWorld(gym.Env):
                 self.train_level_count += 1
                 self.save_screen_image(f"./saves/train_levels/level_{self.train_level_count}_img.png")
                 with open(f'./saves/train_levels/level_{self.train_level_count}_path', 'wb') as fp:
-                            np.save(fp, self.player_path)
+                    np.save(fp, self.player_path)
                 with open(f'./saves/train_levels/level_{self.train_level_count}_grid', 'wb') as fp:
-                            np.save(fp, self.grid)
+                    np.save(fp, self.grid)
+                with open(f'./saves/train_levels/level_{self.train_level_count}_data', 'wb') as fp:
+                    exporter.export_env(self, f'./saves/train_levels/level_{self.train_level_count}_data.json')
                 
                 # Randomizing player path.
                 self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
