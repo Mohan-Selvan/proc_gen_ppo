@@ -52,6 +52,8 @@ class GameWorld(gym.Env):
         self.max_distance_from_path = 6
         self.reset_count = 0
         self.total_number_of_possible_cells_that_can_be_modified = 1
+        self.step_count = 0
+        self.max_step_count = 1000
 
         self.observation_window_shape = observation_window_shape
         self.mask_shape = mask_shape
@@ -68,7 +70,7 @@ class GameWorld(gym.Env):
         # self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), seed=random_seed, dtype=np.uint8
         # )
 
-        self.action_space = gym.spaces.Box(low=0.0, high=(num_tile_actions - 1), shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.float32
+        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.float32
         )
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
@@ -162,9 +164,9 @@ class GameWorld(gym.Env):
         window_normalized_grid = (window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1))
         window_last_mask_values = (window_last_mask_values / (constants.NUMBER_OF_ACTIONS_PER_CELL - 1))
    
-        state = np.stack([window_normalized_grid.astype(np.float32).T, 
-                          window_ohe_player_path.astype(np.float32).T, 
-                          window_ohe_reachable_points.astype(np.float32).T, 
+        state = np.stack([window_normalized_grid.astype(np.float32), 
+                          window_ohe_player_path.astype(np.float32), 
+                          window_ohe_reachable_points.astype(np.float32), 
                           #window_ohe_mask_pos.astype(np.float64), 
                           #window_last_mask_values.astype(np.float64)
                         ],axis=0) #window_ohe_reachable_points * 255
@@ -188,6 +190,7 @@ class GameWorld(gym.Env):
         random.seed(seed)
 
         self.frame_count = 0
+        self.step_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
         # self.grid = np.random.random_integers(0, 1, (self.width, self.height)).astype(np.uint8)
         self.player_pos = self.start_pos
@@ -207,7 +210,15 @@ class GameWorld(gym.Env):
         # print(action)
 
         # Convert the flat action back to a 2D action mask
-        action_mask = np.round(np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))).astype(int)
+        remapped_action = helper.remap_array(action, (-1.0, 1.0), (0, self.num_tile_actions - 1))
+        # print(remapped_action)
+        remapped_action = np.round(remapped_action).astype(int)
+        # print(remapped_action)
+        action_mask = remapped_action.reshape((self.mask_shape[0], self.mask_shape[1]))
+        # print(action_mask)
+
+        # print("----------------------------------")
+        #action_mask = np.round(np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))).astype(int)
         # print(action_mask.shape)
         # print(action_mask)
         # print("--------------------------")
@@ -231,7 +242,8 @@ class GameWorld(gym.Env):
 
         # print(f"Reward, B: {reward_before_action} A: {reward_after_action}")
 
-        terminated = self.frame_count > self.max_frame_count
+        #terminated = self.frame_count > self.max_frame_count
+        terminated = self.step_count > self.max_step_count
         truncated = False
 
         # Checking if any reachable points are in mask area
@@ -273,9 +285,22 @@ class GameWorld(gym.Env):
         is_furthest_cell_in_action_mask_reachable = (not (furthest_cell_action_mask is None)) and (furthest_cell_action_mask in reachable_cells)
 
         if(is_furthest_cell_in_action_mask_reachable):
-            reward = 3
+            
+            reward = 5
+
+            # reward for non_hanging cells
+            hanging_cells = []
+            for cell in cells_in_action_mask:
+                if(self.is_cell_hanging(cell)):
+                    hanging_cells.append(cell)
+            reward += (1.0 - ((len(hanging_cells) / len(cells_in_action_mask)))) * 2
+
+            self.step_count = 0
+
         else:
-            reward = -0.2
+            reward = 0
+
+        reward -= (self.step_count / self.max_step_count) * 2
 
         
         found = False
@@ -289,10 +314,14 @@ class GameWorld(gym.Env):
                     break
         
         if(not found):
-            reward = -1
+            reward -= 0
 
         if(is_furthest_cell_in_action_mask_reachable):
             self.last_player_pos = self.player_pos
+                
+            if(self.player_path_index >= len(self.player_path) - 1):
+                terminated = True
+
             self.player_path_index = (self.player_path_index + 5)
             if(self.player_path_index >= len(self.player_path)):
                 self.player_path_index = (len(self.player_path) - 1)
@@ -332,6 +361,7 @@ class GameWorld(gym.Env):
 
         self.render(True)
         self.frame_count += 1
+        self.step_count += 1
 
         if(terminated or truncated):
             reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
@@ -1296,6 +1326,25 @@ class GameWorld(gym.Env):
         hanging_cells = [(x, y) for x in range(width) for y in range(height) if grid[x, y] == constants.GRID_EMPTY_SPACE and not visited[x, y]]
 
         return hanging_cells
+    
+    def is_cell_hanging(self, cell):
+
+        if(self.grid[cell] != constants.GRID_EMPTY_SPACE):
+            return False
+
+        is_hanging = True
+
+        for dir in [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT]:
+            next_cell = self.get_cell_in_direction(cell, dir, restrict_boundary=False)
+            if(not self.is_position_valid(next_cell)):
+                continue
+
+            if(self.grid[next_cell] == constants.GRID_EMPTY_SPACE):
+                is_hanging = False
+                break
+
+        return is_hanging
+
             
     def get_cells_in_action_mask_region(self):
 

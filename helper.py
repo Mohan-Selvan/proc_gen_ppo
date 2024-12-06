@@ -27,3 +27,15 @@ def lerp_color(from_color, to_color, t):
         lerp(from_color[1], to_color[1], t),
         lerp(from_color[2], to_color[2], t)
     )
+
+def remap_array(array, from_range, to_range):
+    for index, num in enumerate(array):
+        array[index] = remap(num, from_range, to_range)
+    
+    return array
+
+def remap(value, from_range, to_range):
+    from_min, from_max = from_range
+    to_min, to_max = to_range
+    remapped_value = (((value - from_min) * (to_max - to_min)) / ((from_max - from_min))) + to_min
+    return remapped_value

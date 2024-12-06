@@ -109,7 +109,10 @@ class RewardLoggingCallback(BaseCallback):
                     reward = info["episode"]["r"]
                     self.episode_rewards.append(reward)
                     print(f"Episode : {len(self.episode_rewards)}, Reward : {reward}")
-        #helper.plot(self.episode_rewards)
+
+                    # if(len(self.episode_rewards) > 1):
+                    #     helper.plot(self.episode_rewards)
+        
         return True
 
     def on_training_end(self):
@@ -170,7 +173,7 @@ def train(device):
     
     # "CnnLstmPolicy"
     model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
-                            policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=512),
+                            policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=256),
                             gamma=0.99, 
                             gae_lambda=0.95,
                             n_epochs=20, 
@@ -247,6 +250,6 @@ def load_and_predict(env):
 
 DEVICE = 'cuda:0'
 if(__name__ == "__main__"):
-    # check_env()
+    check_env()
     train(device=DEVICE)
     test(device=DEVICE)
