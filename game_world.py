@@ -21,7 +21,7 @@ np.set_printoptions(threshold=sys.maxsize)
 
 class GameWorld(gym.Env):
 
-    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions, path_randomness, random_seed):
+    def __init__(self, width, height, player_path, observation_window_shape, mask_shape, num_tile_actions, path_randomness, random_seed, force_move_agent_forward = False):
 
         self.width = width
         self.height = height
@@ -54,6 +54,7 @@ class GameWorld(gym.Env):
         self.total_number_of_possible_cells_that_can_be_modified = 1
         self.step_count = 0
         self.max_step_count = 1000
+        self.force_move_agent_forward = force_move_agent_forward
 
         self.observation_window_shape = observation_window_shape
         self.mask_shape = mask_shape
@@ -192,7 +193,6 @@ class GameWorld(gym.Env):
         self.frame_count = 0
         self.step_count = 0
         self.grid = np.full([self.width, self.height], constants.GRID_PLATFORM, np.uint8)
-        # self.grid = np.random.random_integers(0, 1, (self.width, self.height)).astype(np.uint8)
         self.player_pos = self.start_pos
         self.player_path_index = 0
 
@@ -293,14 +293,15 @@ class GameWorld(gym.Env):
             for cell in cells_in_action_mask:
                 if(self.is_cell_hanging(cell)):
                     hanging_cells.append(cell)
-            reward += (1.0 - ((len(hanging_cells) / len(cells_in_action_mask)))) * 2
+            reward += (1.0 - ((len(hanging_cells) / len(cells_in_action_mask)))) * 5
 
             self.step_count = 0
 
         else:
             reward = 0
 
-        reward -= (self.step_count / self.max_step_count) * 2
+        # Reduce reward if the step_count is greater than half of max.
+        reward -= max(0, ((self.step_count - (self.max_step_count*0.5)) / self.max_step_count))
 
         
         found = False

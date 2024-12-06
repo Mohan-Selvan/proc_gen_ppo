@@ -10,53 +10,47 @@ import numpy as np
 
 import constants
 
-class SmallObservationCNN(BaseFeaturesExtractor):
+
+class CustomCNNExtractor(BaseFeaturesExtractor):
     """
-    Custom CNN feature extractor for small observation space (3, 15, 15).
+    Custom CNN feature extractor for the small (3, 7, 7) observation space.
     """
     def __init__(self, observation_space: Box, features_dim: int = 128):
-        super(SmallObservationCNN, self).__init__(observation_space, features_dim)
-        
-        # Validate observation space
-        obs_shape = observation_space.shape
-        assert obs_shape == (3, 7, 7), f"Expected observation space (3, 15, 15), got {obs_shape}"
-        
-        # Custom CNN for small input
+        super(CustomCNNExtractor, self).__init__(observation_space, features_dim)
+
+        # Validate input dimensions
+        assert observation_space.shape == (3, 7, 7), "Expected input shape (3, 7, 7)."
+
         self.cnn = nn.Sequential(
-            nn.Conv2d(obs_shape[0], 8, kernel_size=1, stride=1, padding=0),  # Output: (16, 15, 15)
+            nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),  # Output: (16, 7, 7)
             nn.ReLU(),
-            nn.Conv2d(8, 8, kernel_size=1, stride=1, padding=0),  # Output: (16, 15, 15)
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1), # Output: (32, 7, 7)
             nn.ReLU(),
-            # nn.Conv2d(16, 32, kernel_size=1, stride=2, padding=1),            # Output: (32, 8, 8)
-            # nn.ReLU(),
-            # nn.Conv2d(32, 64, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
-            # nn.ReLU(),
-            nn.Flatten()                                                     # Output: (64 * 8 * 8 = 4096)
+            nn.Flatten()                                          # Output: (32 * 7 * 7)
         )
-        
-        # Compute the CNN output size
-        with torch.no_grad():
-            n_flatten = self.cnn(torch.zeros(1, *obs_shape)).shape[1]
-        
-        # Fully connected layer to match `features_dim`
-        self.fc = nn.Sequential(
-            nn.Linear(n_flatten, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
+
+        # Compute the flattened size after convolution layers
+        n_flatten = 32 * 7 * 7
+
+        # Final linear layer to map to desired feature dimension
+        self.linear = nn.Sequential(
+            nn.Linear(n_flatten, features_dim),
             nn.ReLU()
         )
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         x = self.cnn(observations)
-        return self.fc(x)
+        return self.linear(x)
 
 
-class CustomCnnPolicy(ActorCriticCnnPolicy):
+class CustomPolicy(ActorCriticCnnPolicy):
     """
-    Custom policy for PPO with a small CNN feature extractor.
+    Custom Policy with CNN backbone for small grid observations.
     """
     def __init__(self, *args, **kwargs):
-        # Use the custom CNN feature extractor
-        kwargs['features_extractor_class'] = SmallObservationCNN
-        kwargs['features_extractor_kwargs'] = {'features_dim': 128}
-        super(CustomCnnPolicy, self).__init__(*args, **kwargs)
+        super(CustomPolicy, self).__init__(
+            *args,
+            **kwargs,
+            features_extractor_class=CustomCNNExtractor,
+            features_extractor_kwargs=dict(features_dim=128)
+        )
