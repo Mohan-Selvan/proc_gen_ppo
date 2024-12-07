@@ -172,39 +172,44 @@ def train(device):
 
   
     # "CnnLstmPolicy"
-    # model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
-    #                         policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=256),
-    #                         gamma=0.99, 
-    #                         gae_lambda=0.95,
-    #                         n_epochs=10, 
-    #                         ent_coef=0.1,
-    #                         clip_range=0.3,
-    #                         max_grad_norm=0.5,
-    #                         vf_coef=0.5,
-    #                         learning_rate=3e-4,
-    #                         normalize_advantage=True,
-    #                         seed=constants.RANDOM_SEED,
-    #                         device=device,
-    #                         tensorboard_log=log_dir)
+    model = RecurrentPPO("CnnLstmPolicy", env, verbose=1, 
+                            #policy_kwargs=dict(normalize_images=False, ortho_init=True, lstm_hidden_size=256),
+                            policy_kwargs = dict(
+                                normalize_images=False,
+                                features_extractor_class=custom_policy_lstm.CustomSmallCnnFeatureExtractor,
+                                features_extractor_kwargs=dict(features_dim=128),
+                            ),
+                            gamma=0.99, 
+                            #gae_lambda=0.95,
+                            n_epochs=10, 
+                            #ent_coef=0.1,
+                            #clip_range=0.3,
+                            #max_grad_norm=0.5,
+                            #vf_coef=0.5,
+                            learning_rate=3e-4,
+                            normalize_advantage=True,
+                            seed=constants.RANDOM_SEED,
+                            device=device,
+                            tensorboard_log=log_dir)
 
-    model = PPO("CnnPolicy", 
-                env, 
-                verbose=1,
-                #policy_kwargs=dict(normalize_images=False, ortho_init=True),
-                policy_kwargs = dict(
-                    normalize_images=False,
-                    features_extractor_class=custom_policy_ppo.CustomCNN,
-                    features_extractor_kwargs=dict(features_dim=128),
-                ),
-                use_sde=False,
-                gamma=0.99,
-                n_epochs=10,
-                #ent_coef=0.1,
-                #clip_range=0.3,
-                learning_rate=0.0001,
-                seed=constants.RANDOM_SEED,
-                device=device,
-                tensorboard_log=log_dir)
+    # model = PPO("CnnPolicy", 
+    #             env, 
+    #             verbose=1,
+    #             #policy_kwargs=dict(normalize_images=False, ortho_init=True),
+    #             policy_kwargs = dict(
+    #                 normalize_images=False,
+    #                 features_extractor_class=custom_policy_ppo.CustomCNN,
+    #                 features_extractor_kwargs=dict(features_dim=128),
+    #             ),
+    #             use_sde=False,
+    #             gamma=0.99,
+    #             n_epochs=10,
+    #             #ent_coef=0.1,
+    #             #clip_range=0.3,
+    #             learning_rate=0.0001,
+    #             seed=constants.RANDOM_SEED,
+    #             device=device,
+    #             tensorboard_log=log_dir)
     
     # model = TRPO("MlpPolicy", 
     #             env,
@@ -217,7 +222,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=200000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=120000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
@@ -228,8 +233,8 @@ def test(device):
     print("Testing : Start")
 
     # Load the model later for evaluation
-    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
-    loaded_model = PPO.load(model_file_path, device=device)
+    loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    # loaded_model = PPO.load(model_file_path, device=device)
     # loaded_model = TRPO.load(model_file_path, device=device)
 
     env = create_env()
@@ -241,8 +246,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    # model = RecurrentPPO.load(model_file_path)
-    model = PPO.load(model_file_path)
+    model = RecurrentPPO.load(model_file_path)
+    # model = PPO.load(model_file_path)
     # model = TRPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation

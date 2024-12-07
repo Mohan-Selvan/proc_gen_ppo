@@ -18,44 +18,24 @@ class CustomSmallCnnFeatureExtractor(BaseFeaturesExtractor):
         # Validate the observation space
         obs_shape = observation_space.shape
         #assert obs_shape == (3, 15, 15), f"Expected observation space (5, 15, 15), got {obs_shape}"
-        
+        n_input_channels = obs_shape[0]
+
         # A smaller and simpler CNN
         self.cnn = nn.Sequential(
-            nn.Conv2d(obs_shape[0], 16, kernel_size=1, stride=1, padding=1),  # Output: (16, 15, 15)
+            nn.Conv2d(n_input_channels, 8, kernel_size=4, stride=2, padding=0),
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=1, stride=1, padding=1),            # Output: (32, 15, 15)
+            nn.Conv2d(8, 16, kernel_size=2, stride=1, padding=0),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
-            nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
-            nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=1, stride=1, padding=1),            # Output: (64, 8, 8)
-            nn.ReLU(),
-            nn.Flatten()                                                     # Output: (64 * 8 * 8)
+            nn.Flatten(),
         )
         
-        # Calculate the output size of the CNN layers
+        # Compute shape by doing one forward pass
         with torch.no_grad():
-            n_flatten = self.cnn(torch.zeros(1, *obs_shape)).shape[1]
+            n_flatten = self.cnn(
+                torch.as_tensor(observation_space.sample()[None]).float()
+            ).shape[1]
         
-        # Fully connected layer to produce features_dim
-        self.fc = nn.Sequential(
-            nn.Linear(n_flatten, features_dim),
-            nn.ReLU()
-        )
+        self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        x = self.cnn(observations)
-        return self.fc(x)
-
-
-class CustomRecurrentPPOPolicy(RecurrentActorCriticCnnPolicy):
-    """
-    Custom policy for Recurrent PPO with a custom CNN for small observation spaces.
-    """
-    def __init__(self, *args, **kwargs):
-        # Use the custom CNN extractor
-        features_extractor_class = CustomSmallCnnFeatureExtractor
-        kwargs['features_extractor_class'] = features_extractor_class
-        kwargs['features_extractor_kwargs'] = {'features_dim': 128}
-        super(CustomRecurrentPPOPolicy, self).__init__(*args, **kwargs)
+        return self.linear(self.cnn(observations))
