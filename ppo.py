@@ -217,7 +217,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=50000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=200000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
