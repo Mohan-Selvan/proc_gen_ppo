@@ -211,10 +211,14 @@ def train(device):
     #             device=device,
     #             tensorboard_log=log_dir)
     
-    # model = TRPO("MlpPolicy", 
+    # model = TRPO("CnnPolicy", 
     #             env,
     #             verbose=1,
-    #             policy_kwargs=dict(normalize_images=False, ortho_init=True),
+    #             policy_kwargs = dict(
+    #                 normalize_images=False,
+    #                 features_extractor_class=custom_policy_ppo.CustomCNN,
+    #                 features_extractor_kwargs=dict(features_dim=128),
+    #             ),
     #             learning_rate=0.001,
     #             tensorboard_log=log_dir)
 
@@ -222,7 +226,7 @@ def train(device):
 
     print("Training : Start")
     # # Train the model
-    model.learn(total_timesteps=120000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
+    model.learn(total_timesteps=70000, progress_bar=True, callback=reward_callback, reset_num_timesteps=True)
     print("Training : Complete")
 
     # Save the model
