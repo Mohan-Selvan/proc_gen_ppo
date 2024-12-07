@@ -290,34 +290,32 @@ class GameWorld(gym.Env):
         
         is_furthest_cell_in_action_mask_reachable = (not (furthest_cell_action_mask is None)) and (furthest_cell_action_mask in reachable_cells)
 
-        reward = 0
-
-        if(is_furthest_cell_in_action_mask_reachable):
-            
-            reward = 5
-
-            self.step_count = 0
-
-        else:
-            reward = 0
-            hanging_cells = []
-            for cell in cells_in_action_mask:
-                if(self.is_cell_hanging(cell)):
-                    hanging_cells.append(cell)
-                    reward -= 0.1
-
-        # for cell in cells_in_action_mask:
-        #     if(self.can_stand_on(cell) and (cell not in reachable_cells)):
-        #         reward -= 100
-        
+        # Finding all the hanging cells
         hc_list = []
         for x in range(0, self.width):
             for y in range(0, self.height):
                 cell = (x, y)
                 if(self.can_stand_on(cell) and (cell not in reachable_cells)):
                     hc_list.append(cell)
-
         self.hanging_cells_in_grid = hc_list
+
+        reward = 0
+        if(is_furthest_cell_in_action_mask_reachable):
+            self.step_count = 0
+            
+            reward = 5
+            reward += (1.0 - (len(self.hanging_cells_in_grid) / len(cells_in_action_mask))) * 2
+
+        else:
+            hanging_cells = []
+            for cell in cells_in_action_mask:
+                if(self.is_cell_hanging(cell)):
+                    hanging_cells.append(cell)
+                    reward -= (self.step_count / self.max_step_count)
+
+        # for cell in cells_in_action_mask:
+        #     if(self.can_stand_on(cell) and (cell not in reachable_cells)):
+        #         reward -= 100
 
         # # Reduce reward if the step_count is greater than half of max.
         # reward -= max(0, ((self.step_count - (self.max_step_count*0.5)) / self.max_step_count))
@@ -343,7 +341,7 @@ class GameWorld(gym.Env):
         if(not found):
             reward = -1
 
-        if((is_furthest_cell_in_action_mask_reachable and len(self.hanging_cells_in_grid) <= 0) or self.force_move_agent_forward):
+        if((is_furthest_cell_in_action_mask_reachable) or self.force_move_agent_forward):
             self.last_player_pos = self.player_pos
                 
             if(self.player_path_index >= len(self.player_path) - 1):
