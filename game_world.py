@@ -4,6 +4,7 @@ import math
 import random
 import helper
 import pickle
+import os
 
 import constants
 
@@ -41,6 +42,7 @@ class GameWorld(gym.Env):
         self.player_path_index = 0
         self.player_pos = self.start_pos
         self.coverable_path = []
+        self.hanging_cells_in_grid = []
 
         path_list = [self.start_pos]
         self.mask = np.full(mask_shape, 0, dtype=np.uint8)
@@ -53,7 +55,7 @@ class GameWorld(gym.Env):
         self.reset_count = 0
         self.total_number_of_possible_cells_that_can_be_modified = 1
         self.step_count = 0
-        self.max_step_count = 1000
+        self.max_step_count = 30
         self.force_move_agent_forward = force_move_agent_forward
 
         self.observation_window_shape = observation_window_shape
@@ -68,15 +70,15 @@ class GameWorld(gym.Env):
         self.train_level_count = 0
 
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
-        # self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), seed=random_seed, dtype=np.uint8
-        # )
-
-        self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(1, mask_shape[0] * mask_shape[1]), seed=random_seed, dtype=np.float32
+        self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), dtype=np.uint8 #seed=random_seed,
         )
+
+        # self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(1, mask_shape[0] * mask_shape[1]), dtype=np.float32 #seed=random_seed
+        # )
 
         # Observation space: (3 channels, grid_size X, grid_size Y)
         self.observation_space = gym.spaces.Box(
-            low=0.0, high=1.0, shape=(3, self.observation_window_shape[0], self.observation_window_shape[1]), seed=random_seed, dtype=np.float32
+            low=0.0, high=1.0, shape=(4, self.observation_window_shape[0], self.observation_window_shape[1]), dtype=np.float32 #seed=random_seed, 
         )
 
         self.set_player_path(player_path)
@@ -124,6 +126,7 @@ class GameWorld(gym.Env):
         window_normalized_grid = np.full(window_shape, constants.GRID_PLATFORM, dtype = np.uint8)
         window_ohe_player_path = np.full(window_shape, 0, dtype = np.float32)
         window_ohe_reachable_points = np.full(window_shape, 0, dtype=np.uint8)
+        window_ohe_hanging_cells = np.full(window_shape, 0, dtype=np.uint8)
         window_ohe_mask_pos = np.full(window_shape, 0, dtype = np.uint8)
         window_last_mask_values = np.full(window_shape, constants.TILE_ACTION_IGNORE, dtype=np.uint8)
 
@@ -156,6 +159,8 @@ class GameWorld(gym.Env):
                     window_ohe_player_path[x, y] = 1 if ((self.player_path.index(world_pos)) >= self.player_path_index) else 0.5
                 if(world_pos in self.coverable_path):
                     window_ohe_reachable_points[x, y] = 1
+                if(world_pos in self.hanging_cells_in_grid):
+                    window_ohe_hanging_cells[x, y] = 1
                 if(world_pos in mask_positions):
                     window_ohe_mask_pos[x, y] = 1
                 if(world_pos in last_mask_dict):
@@ -165,14 +170,13 @@ class GameWorld(gym.Env):
         window_normalized_grid = (window_normalized_grid / (constants.TOTAL_NUMBER_OF_TILE_TYPES - 1))
         window_last_mask_values = (window_last_mask_values / (constants.NUMBER_OF_ACTIONS_PER_CELL - 1))
    
-        state = np.stack([window_normalized_grid.astype(np.float32), 
-                          window_ohe_player_path.astype(np.float32), 
-                          window_ohe_reachable_points.astype(np.float32), 
+        state = np.stack([(window_normalized_grid).astype(np.float32), 
+                          (window_ohe_player_path).astype(np.float32), 
+                          (window_ohe_reachable_points).astype(np.float32), 
+                          (window_ohe_hanging_cells).astype(np.float32), 
                           #window_ohe_mask_pos.astype(np.float64), 
                           #window_last_mask_values.astype(np.float64)
                         ],axis=0) #window_ohe_reachable_points * 255
-        
-        # print(state)
 
         obs = state
         return obs
@@ -209,13 +213,15 @@ class GameWorld(gym.Env):
         # print(action.shape)
         # print(action)
 
-        # Convert the flat action back to a 2D action mask
-        remapped_action = helper.remap_array(action, (-1.0, 1.0), (0, self.num_tile_actions - 1))
-        # print(remapped_action)
-        remapped_action = np.round(remapped_action).astype(int)
-        # print(remapped_action)
-        action_mask = remapped_action.reshape((self.mask_shape[0], self.mask_shape[1]))
-        # print(action_mask)
+        # # Convert the flat action back to a 2D action mask
+        # remapped_action = helper.remap_array(action, (-1.0, 1.0), (0, self.num_tile_actions - 1))
+        # # print(remapped_action)
+        # remapped_action = np.round(remapped_action).astype(int)
+        # # print(remapped_action)
+        # action_mask = remapped_action.reshape((self.mask_shape[0], self.mask_shape[1]))
+        # # print(action_mask)
+
+        action_mask = np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))
 
         # print("----------------------------------")
         #action_mask = np.round(np.array(action).reshape((self.mask_shape[0], self.mask_shape[1]))).astype(int)
@@ -243,8 +249,8 @@ class GameWorld(gym.Env):
         # print(f"Reward, B: {reward_before_action} A: {reward_after_action}")
 
         #terminated = self.frame_count > self.max_frame_count
-        terminated = self.step_count > self.max_step_count
-        truncated = False
+        terminated = False
+        truncated = self.step_count > self.max_step_count
 
         # Checking if any reachable points are in mask area
         # found = False
@@ -284,24 +290,44 @@ class GameWorld(gym.Env):
         
         is_furthest_cell_in_action_mask_reachable = (not (furthest_cell_action_mask is None)) and (furthest_cell_action_mask in reachable_cells)
 
+        reward = 0
+
         if(is_furthest_cell_in_action_mask_reachable):
             
             reward = 5
-
-            # reward for non_hanging cells
-            hanging_cells = []
-            for cell in cells_in_action_mask:
-                if(self.is_cell_hanging(cell)):
-                    hanging_cells.append(cell)
-            reward += (1.0 - ((len(hanging_cells) / len(cells_in_action_mask)))) * 5
 
             self.step_count = 0
 
         else:
             reward = 0
+            hanging_cells = []
+            for cell in cells_in_action_mask:
+                if(self.is_cell_hanging(cell)):
+                    hanging_cells.append(cell)
+                    reward -= 0.1
 
-        # Reduce reward if the step_count is greater than half of max.
-        reward -= max(0, ((self.step_count - (self.max_step_count*0.5)) / self.max_step_count))
+        # for cell in cells_in_action_mask:
+        #     if(self.can_stand_on(cell) and (cell not in reachable_cells)):
+        #         reward -= 100
+        
+        hc_list = []
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                cell = (x, y)
+                if(self.can_stand_on(cell) and (cell not in reachable_cells)):
+                    hc_list.append(cell)
+
+        self.hanging_cells_in_grid = hc_list
+
+        # # Reduce reward if the step_count is greater than half of max.
+        # reward -= max(0, ((self.step_count - (self.max_step_count*0.5)) / self.max_step_count))
+
+        # # reward for non_hanging cells
+        # hanging_cells = []
+        # for cell in cells_in_action_mask:
+        #     if(self.is_cell_hanging(cell)):
+        #         hanging_cells.append(cell)
+        # reward -= (len(hanging_cells))
 
         
         found = False
@@ -315,9 +341,9 @@ class GameWorld(gym.Env):
                     break
         
         if(not found):
-            reward -= 0
+            reward = -1
 
-        if(is_furthest_cell_in_action_mask_reachable):
+        if((is_furthest_cell_in_action_mask_reachable and len(self.hanging_cells_in_grid) <= 0) or self.force_move_agent_forward):
             self.last_player_pos = self.player_pos
                 
             if(self.player_path_index >= len(self.player_path) - 1):
@@ -367,19 +393,15 @@ class GameWorld(gym.Env):
         if(terminated or truncated):
             reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
             if(reachability >= 0.99):
-
-                # Exporting valid levels.
-                self.train_level_count += 1
-                self.save_screen_image(f"./saves/train_levels/level_{self.train_level_count}_img.png")
-                with open(f'./saves/train_levels/level_{self.train_level_count}_path', 'wb') as fp:
-                    np.save(fp, self.player_path)
-                with open(f'./saves/train_levels/level_{self.train_level_count}_grid', 'wb') as fp:
-                    np.save(fp, self.grid)
-                with open(f'./saves/train_levels/level_{self.train_level_count}_data', 'wb') as fp:
-                    exporter.export_env(self, f'./saves/train_levels/level_{self.train_level_count}_data.json')
-                
+                self.export_env()
                 # Randomizing player path.
-                self.set_player_path(self.generate_player_path(max_turns=1000, randomness=self.path_randomness))
+                self.set_player_path(
+                    self.generate_player_path(
+                        max_turns=self.train_level_count, 
+                        randomness=helper.lerp(0.2, 1, (self.train_level_count / 50))
+                        )
+                )
+
                 print("Randomizing path")        
 
         return state, reward, terminated, truncated, self._get_info() 
@@ -548,9 +570,6 @@ class GameWorld(gym.Env):
         self.total_number_of_possible_cells_that_can_be_modified = len(unique_cells)
         print(f"Total number of cells that can be modified this level : {self.total_number_of_possible_cells_that_can_be_modified}")
 
-
-
-
     def _update(self, flip_display = True):
         self.clock.tick(constants.GAME_SIMULATION_SPEED)
         self.render(flip_display)
@@ -608,6 +627,10 @@ class GameWorld(gym.Env):
 
         for cell in self.coverable_path:
             pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
+
+        for cell in self.hanging_cells_in_grid:
+            pygame.draw.rect(self.display, constants.COLOR_YELLOW, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
+
 
         if(flip_display):
             pygame.display.flip()
@@ -1364,3 +1387,20 @@ class GameWorld(gym.Env):
     def save_screen_image(self, full_path):
         pygame.image.save(self.display, full_path)
         print(f"Saved image : {full_path}")
+
+    def export_env(self, base_directory = "./saves/train_levels/"):
+        # Exporting valid levels.
+        self.train_level_count += 1
+        self.save_screen_image(os.path.join(base_directory, f"level_{self.train_level_count}_img.png"))
+        with open(os.path.join(base_directory, f'level_{self.train_level_count}_path'), 'wb') as fp:
+            np.save(fp, self.player_path)
+        with open(os.path.join(base_directory, f'level_{self.train_level_count}_grid'), 'wb') as fp:
+            np.save(fp, self.grid)
+        with open(os.path.join(base_directory, f'level_{self.train_level_count}_data'), 'wb') as fp:
+            exporter.export_env(self, os.path.join(base_directory, f'level_{self.train_level_count}_data.json'))
+
+    def can_stand_on(self, cell):
+        below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
+        if(not self.is_position_valid(below_cell)):
+            return False
+        return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
