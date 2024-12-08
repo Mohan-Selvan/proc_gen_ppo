@@ -5,6 +5,7 @@ import random
 import helper
 import pickle
 import os
+import json
 
 import constants
 
@@ -68,6 +69,10 @@ class GameWorld(gym.Env):
 
         # Trackers
         self.train_level_count = 0
+
+        # Misc
+        self.truncated = False
+        self.terminated = False
 
         # Action space: Each element in the 2D mask has 3 possible values (0, 1, or 2)
         self.action_space = gym.spaces.MultiDiscrete(([num_tile_actions] * (mask_shape[0] * mask_shape[1])), dtype=np.uint8 #seed=random_seed,
@@ -183,7 +188,11 @@ class GameWorld(gym.Env):
     
     def _get_info(self):
         return {
-            "path_progress": (self.player_path_index / len(self.player_path))
+            "path_progress": (self.player_path_index / len(self.player_path)),
+            "term" : (self.terminated),
+            "trunc" : self.truncated,
+            "data" : self.get_exportable_format(),
+            "img" : pygame.image.tostring(self.display, 'RGBA')
         }
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
@@ -249,8 +258,8 @@ class GameWorld(gym.Env):
         # print(f"Reward, B: {reward_before_action} A: {reward_after_action}")
 
         #terminated = self.frame_count > self.max_frame_count
-        terminated = False
-        truncated = self.step_count > self.max_step_count
+        self.terminated = False
+        self.truncated = self.step_count > self.max_step_count
 
         # Checking if any reachable points are in mask area
         # found = False
@@ -278,6 +287,16 @@ class GameWorld(gym.Env):
 
         self.coverable_path = reachable_cells
 
+        
+        # Finding all the hanging cells
+        hc_list = []
+        for x in range(0, self.width):
+            for y in range(0, self.height):
+                cell = (x, y)
+                if(self.can_stand_on(cell) and (cell not in reachable_cells)):
+                    hc_list.append(cell)
+        self.hanging_cells_in_grid = hc_list
+
         # Cells in action mask
         cells_in_action_mask = self.get_cells_in_action_mask_region()
 
@@ -289,15 +308,6 @@ class GameWorld(gym.Env):
                 break
         
         is_furthest_cell_in_action_mask_reachable = (not (furthest_cell_action_mask is None)) and (furthest_cell_action_mask in reachable_cells)
-
-        # Finding all the hanging cells
-        hc_list = []
-        for x in range(0, self.width):
-            for y in range(0, self.height):
-                cell = (x, y)
-                if(self.can_stand_on(cell) and (cell not in reachable_cells)):
-                    hc_list.append(cell)
-        self.hanging_cells_in_grid = hc_list
 
         reward = 0
         if(is_furthest_cell_in_action_mask_reachable):
@@ -345,7 +355,7 @@ class GameWorld(gym.Env):
             self.last_player_pos = self.player_pos
                 
             if(self.player_path_index >= len(self.player_path) - 1):
-                terminated = True
+                self.terminated = True
 
             self.player_path_index = (self.player_path_index + 5)
             if(self.player_path_index >= len(self.player_path)):
@@ -388,21 +398,24 @@ class GameWorld(gym.Env):
         self.frame_count += 1
         self.step_count += 1
 
-        if(terminated or truncated):
+        if(self.terminated):
             reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
             if(reachability >= 0.99):
-                self.export_env()
-                # Randomizing player path.
-                self.set_player_path(
-                    self.generate_player_path(
-                        max_turns=self.train_level_count, 
-                        randomness=helper.lerp(0.2, 1, (self.train_level_count / 50))
-                        )
-                )
-
-                print("Randomizing path")        
-
-        return state, reward, terminated, truncated, self._get_info() 
+                self.export_level()
+            else:
+                print("Terminated, but Level is not solvable!")
+             
+            # Randomizing player path.
+            self.set_player_path(
+                self.generate_player_path(
+                    max_turns=self.train_level_count, 
+                    randomness=helper.lerp(0.2, 1, (self.train_level_count / 50))
+                    )
+            )
+            print("Randomizing path")
+        
+        # print(f"Term : {self.terminated}, Trunc : {self.truncated}")
+        return state, reward, self.terminated, self.truncated, self._get_info() 
 
     def get_current_reward(self):
 
@@ -1386,19 +1399,31 @@ class GameWorld(gym.Env):
         pygame.image.save(self.display, full_path)
         print(f"Saved image : {full_path}")
 
-    def export_env(self, base_directory = "./saves/train_levels/"):
+    
+    def export_level(self, base_directory = "./saves/train_levels/"):
         # Exporting valid levels.
         self.train_level_count += 1
-        self.save_screen_image(os.path.join(base_directory, f"level_{self.train_level_count}_img.png"))
-        with open(os.path.join(base_directory, f'level_{self.train_level_count}_path'), 'wb') as fp:
-            np.save(fp, self.player_path)
-        with open(os.path.join(base_directory, f'level_{self.train_level_count}_grid'), 'wb') as fp:
-            np.save(fp, self.grid)
-        with open(os.path.join(base_directory, f'level_{self.train_level_count}_data'), 'wb') as fp:
-            exporter.export_env(self, os.path.join(base_directory, f'level_{self.train_level_count}_data.json'))
-
+        #self.save_screen_image(os.path.join(base_directory, f"level_{self.train_level_count}_img.png"))
+        #exporter.export_level(self, base_directory, level_id=self.train_level_count)
+            
     def can_stand_on(self, cell):
         below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
         if(not self.is_position_valid(below_cell)):
             return False
         return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
+    
+    def get_exportable_format(self):
+    
+        reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+
+        data = { 
+            "grid_size" : (self.width, self.height),
+            "grid" : self.grid.tolist(),
+            "player_path" : self.player_path,
+            "reachable_cells" : self.coverable_path,
+            "hanging_cells" : self.hanging_cells_in_grid,
+            "reachability" : reachability,
+            "is_solvable" : reachability > 0.99
+        }
+
+        return data
