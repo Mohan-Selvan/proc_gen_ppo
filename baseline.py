@@ -2,15 +2,19 @@ import game_world
 import constants
 import pickle
 import random
+import json
 import numpy as np
+import pygame
+import os
 
 player_path = []
 with open (constants.DEFAULT_PLAYER_PATH_FILE_PATH, 'rb') as fp:
     player_path = pickle.load(fp)
     print("Path loaded from 'path_list'")
 
+def evaluate_baseline(export_directory):
 
-def create_env():
+    print("Starting model evaluation")
 
     # Create the environment
     env = game_world.GameWorld(width=constants.GRID_SIZE[0], 
@@ -21,33 +25,79 @@ def create_env():
                             num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL,
                             path_randomness=0.5,
                             random_seed=constants.RANDOM_SEED,
-                            force_move_agent_forward=False
+                            force_move_agent_forward=True
                             ) 
 
-    return env
+    results = []
+    
+    for index in range(0, len(paths_data)):
+        
+        id = (index + 1)
+        path_data = paths_data[index]
 
-def run_baseline(num_episodes):
+        path = path_data["path"]
 
-    env = create_env()
-    env.set_player_path(player_path)
+        for index, cell in enumerate(path):
+             path[index] = (cell[0], cell[1])
 
-    for episode_index in range(0, num_episodes):
-        print(f"Baseline Episode : {(episode_index + 1)} Start")
-        env.reset()
+        path_complexity = path_data["complexity"]
+        print(f"Running path with complexity : {path_complexity}")
 
-        done = False
-        while (not done):
-            action = np.random.uniform( low = -1.0, 
-                                        high = 1.0, 
+        env.set_player_path(path)
+        obs, info = env.reset()
+
+        terminated = False
+        truncated = False
+
+        while not (terminated or truncated):
+            
+            # Get model prediction - Stochastic
+            action = np.random.randint( low = 0, 
+                                        high = (constants.NUMBER_OF_ACTIONS_PER_CELL), # No -1, because in this function, parameter 'high' is exclusive. 
                                         size= (1, constants.ACTION_MASK_SHAPE[0] * constants.ACTION_MASK_SHAPE[1])
                                     )
+            
             obs, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
+            terminated = info["data"]["is_solvable"]
 
-        print(f"Baseline Episode : {(episode_index + 1)} complete")
-        if(terminated):
-            env.export_env(base_directory="./saves/baseline/")
+        image = info["img"]
+        pygame.image.save(pygame.image.fromstring(image, constants.WINDOW_RESOLUTION, 'RGBA'), os.path.join(export_directory, f"test_path_{id}_img.png"))
+        result = {"path_id" : id, "path_data" : path_data, "env_data" : info["data"]}
+
+        is_solvable = info["data"]["is_solvable"]
+        print(f"Is_Level_Solvable : {is_solvable}")
+        
+        results.append(result)
+
+    results_file = os.path.join(export_directory, "results.json")
+    with open(results_file, "w") as f:
+            json.dump(results, f, indent=4)
+
+    print(f"Model evaluation complete, results stored as {results_file}")
+
+    return results
 
 
 if(__name__ == "__main__"):
-    run_baseline(100)
+    
+    paths_data_file_path = "./saves/paths_data.json"
+    paths_data = []
+    with open(paths_data_file_path, "r") as file:
+        paths_data = json.load(file)
+
+    results_directory = "./saves/evaluation/approach_1/"
+    os.makedirs(results_directory, exist_ok=True)
+
+    results = evaluate_baseline(export_directory=results_directory)
+
+    results = {}
+    with open(os.path.join(results_directory, "results.json"), "r") as file:
+        results = json.load(file)
+
+    solvable_count = 0
+
+    for r in results:
+         if(r["env_data"]["is_solvable"]):
+              solvable_count += 1
+
+    print(f"Solvable count : {solvable_count} / {len(results)}" )

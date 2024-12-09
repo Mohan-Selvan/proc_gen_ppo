@@ -28,7 +28,7 @@ class GameWorld(gym.Env):
         self.width = width
         self.height = height
 
-        self.screen_resolution_X, self.screen_resolution_Y = 1024, 768
+        self.screen_resolution_X, self.screen_resolution_Y = constants.WINDOW_RESOLUTION
         self.screen_resolution = (self.screen_resolution_X, self.screen_resolution_Y)
 
         self.display = pygame.display.set_mode(self.screen_resolution)
@@ -361,6 +361,10 @@ class GameWorld(gym.Env):
             if(self.player_path_index >= len(self.player_path)):
                 self.player_path_index = (len(self.player_path) - 1)
             self.player_pos = self.player_path[self.player_path_index]
+
+        # Guard condition
+        if(self.force_move_agent_forward and (self.player_path_index >= len(self.player_path) - 1)):
+            self.truncated = True
 
         ##############################################################################
 

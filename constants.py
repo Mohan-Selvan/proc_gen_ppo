@@ -1,6 +1,7 @@
 from enum import Enum
 
 GAME_SIMULATION_SPEED = 30
+WINDOW_RESOLUTION = (1024, 768)
 
 # WORLD 
 COLOR_BLACK =   (0, 0, 0)
@@ -33,7 +34,7 @@ DIRECTIONS = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT, Dir
 
 RANDOM_SEED = 2
 
-GRID_SIZE = (48, 48)
+GRID_SIZE = (52, 36)
 STATE_SPACE = (GRID_SIZE[0] * GRID_SIZE[1]) * 4
 ACTION_MASK_SHAPE = (5, 5)
 OBSERVATION_WINDOW_SHAPE = (48, 48) #(36, 36)

@@ -20,7 +20,7 @@ from torch import nn
 
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecTransposeImage
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.vec_env import VecMonitor, VecTransposeImage
 from stable_baselines3.common.logger import configure
 
@@ -35,17 +35,7 @@ import custom_policy_ppo
 
 
 def evaluate_model(model, env, num_episodes=10):
-    """
-    Evaluate the trained model on the environment.
 
-    Parameters:
-    - model: The trained PPO model.
-    - env: The environment instance (should be a vectorized environment).
-    - num_episodes: Number of episodes to evaluate.
-
-    Returns:
-    - average_reward: Average reward obtained during the evaluation.
-    """
     total_reward = 0
 
     for episode in range(num_episodes):
@@ -201,7 +191,7 @@ class EventsSequenceCallback(BaseCallback):
                 base_directory = "./saves/train_levels/"
                 level_id = self.level_count
 
-                pygame.image.save(pygame.image.fromstring(img, (1024, 768), 'RGBA'), os.path.join(base_directory, f"level_{level_id}_img.png"))
+                pygame.image.save(pygame.image.fromstring(img, constants.WINDOW_RESOLUTION, 'RGBA'), os.path.join(base_directory, f"level_{level_id}_img.png"))
                 with open(os.path.join(base_directory, f'level_{level_id}_path'), 'wb') as fp:
                     np.save(fp, data["player_path"])
                 with open(os.path.join(base_directory, f'level_{level_id}_grid'), 'wb') as fp:
@@ -424,8 +414,8 @@ def test(device):
     print("Testing : Start")
 
     # Load the model later for evaluation
-    # loaded_model = RecurrentPPO.load(model_file_path, device=device)
-    loaded_model = PPO.load(model_file_path, device=device)
+    loaded_model = RecurrentPPO.load(model_file_path, device=device)
+    # loaded_model = PPO.load(model_file_path, device=device)
     # loaded_model = TRPO.load(model_file_path, device=device)
 
     env = create_env()
@@ -437,8 +427,8 @@ def test(device):
 
 def load_and_predict(env):
     
-    # model = RecurrentPPO.load(model_file_path)
-    model = PPO.load(model_file_path)
+    model = RecurrentPPO.load(model_file_path)
+    # model = PPO.load(model_file_path)
     # model = TRPO.load(model_file_path)
 
     obs, info = env.reset()  # Reset the environment and get the initial observation
