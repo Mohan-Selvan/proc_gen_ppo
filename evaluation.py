@@ -89,9 +89,33 @@ if(__name__ == "__main__"):
 
     solvable_count = 0
 
+    path = paths_data[0]["path"]
+
+    for index, cell in enumerate(path):
+            path[index] = (cell[0], cell[1])
+
+
+    env = game_world.GameWorld(width=constants.GRID_SIZE[0], 
+            height=constants.GRID_SIZE[1], 
+            player_path=path,
+            observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE,
+            mask_shape=constants.ACTION_MASK_SHAPE, 
+            num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL,
+            path_randomness=0.5,
+            random_seed=constants.RANDOM_SEED,
+            force_move_agent_forward=False
+            )
+    
     for r in results:
         if(r["env_data"]["is_solvable"]):
-              solvable_count += 1
+            solvable_count += 1
+
+            env_data = r["env_data"]
+            grid = env_data["grid"]
+
+            env.grid = np.array(grid)
+            env.render(flip_display=True)
+            pygame.image.save(env.display, os.path.join("./saves/visualizations", f"test_img.png"))
 
     print(f"Solvable count : {solvable_count} / {len(results)}" )
 

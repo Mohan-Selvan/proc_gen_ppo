@@ -21,7 +21,7 @@ import custom_policy_lstm
 if __name__ == "__main__":
 
     env = GameWorld(width= GRID_SIZE[0], height= GRID_SIZE[1], 
-                    player_path=[(0, 0), (1, 1)],
+                    player_path=[(0, 0), (1, 0)],
                     observation_window_shape=constants.OBSERVATION_WINDOW_SHAPE, 
                     mask_shape=constants.ACTION_MASK_SHAPE, 
                     num_tile_actions=constants.NUMBER_OF_ACTIONS_PER_CELL, 
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     
     env.reset()
 
-    covered_path = []
+    #env.grid = np.full_like(env.grid, 1, dtype=int)
 
     while True:
 
@@ -68,9 +68,6 @@ if __name__ == "__main__":
                         # Print the full network architecture
                         print(model.policy)
 
-
-
-        
             if(event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]):
                 position = pygame.mouse.get_pos()
                 grid_pos = (position[0] // cell_draw_size, position[1] // cell_draw_size)
@@ -89,13 +86,16 @@ if __name__ == "__main__":
                 if(env.is_position_valid(grid_pos)):
                     env.grid[grid_pos] = constants.GRID_EMPTY_SPACE if env.grid[grid_pos] == constants.GRID_LAVA else constants.GRID_LAVA
 
-        env._update(flip_display= True)
+        env._update(flip_display= False)
 
         cell_draw_size = constants.CELL_DRAW_SIZE
-        # for cell in covered_path:
-        #     pygame.draw.rect(env.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
+        
+        for x in range(0, env.grid.shape[0]):
+            for y in range(0, env.grid.shape[1]):
+                    pygame.draw.rect(env.display, constants.COLOR_WHITE, rect= pygame.Rect((x * cell_draw_size), y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size // 16, border_radius = 1)
 
-        # pygame.display.flip()
+
+        pygame.display.flip()
 
         if(is_quit):
             break
