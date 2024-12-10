@@ -58,7 +58,7 @@ if(__name__ == "__main__"):
     plt.yticks(np.arange(0, 21, 1))
     plt.ylim(0, 20) 
     plt.legend()
-    plt.grid(False)
+    plt.grid(True)
 
     # Save the plot locally
     plt.tight_layout()

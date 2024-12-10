@@ -84,10 +84,8 @@ if(__name__ == "__main__"):
         ax.set_xlabel('Level', fontsize=14)
         ax.set_ylabel('Path Complexity', fontsize=14)
         ax.set_title(f'Path Complexities in Levels - {approach_name}', fontsize=16)
-        plt.legend(handles=[solvable_patch, unsolvable_patch], loc='upper left')
-        ax.legend(fontsize=12)
+        ax.legend(handles=[solvable_patch, unsolvable_patch], loc='upper left', fontsize=12)
         ax.grid(True)
-
 
         # Save the plot locally
         plt.tight_layout()
@@ -104,8 +102,8 @@ if(__name__ == "__main__"):
         ax.set_xlabel('Level', fontsize=14)
         ax.set_ylabel('Reachability', fontsize=14)
         ax.set_title(f'Reachabilities of Levels - {approach_name}', fontsize=16)
-        plt.legend(handles=[solvable_patch, unsolvable_patch], loc='upper left')
-        ax.legend(fontsize=12)
+        ax.set_ylim((0, 1.2))
+        ax.legend(handles=[solvable_patch, unsolvable_patch], loc='upper left', fontsize=12)
         ax.grid(True)
 
         # Save the plot locally
@@ -123,8 +121,7 @@ if(__name__ == "__main__"):
         ax.set_xlabel('Level', fontsize=14)
         ax.set_ylabel('Number of Hanging cells in Level', fontsize=14)
         ax.set_title(f'Hanging cell counts - {approach_name}', fontsize=16)
-        plt.legend(handles=[solvable_patch, unsolvable_patch], loc='upper right')
-        ax.legend(fontsize=12)
+        ax.legend(handles=[solvable_patch, unsolvable_patch], loc='upper left', fontsize=12)
         ax.grid(True)
 
         # Save the plot locally
