@@ -85,10 +85,10 @@ if(__name__ == "__main__"):
     with open(paths_data_file_path, "r") as file:
         paths_data = json.load(file)
 
-    results_directory = "./saves/evaluation/aproach_2/"
+    results_directory = "./saves/evaluation/approach_2/"
     os.makedirs(results_directory, exist_ok=True)
 
-    # results = evaluate_baseline_2(export_directory=results_directory)
+    results = evaluate_baseline_2(export_directory=results_directory)
 
     results = {}
     with open(os.path.join(results_directory, "results.json"), "r") as file:

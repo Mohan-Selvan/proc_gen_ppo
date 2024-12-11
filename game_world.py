@@ -32,7 +32,7 @@ class GameWorld(gym.Env):
         self.screen_resolution = (self.screen_resolution_X, self.screen_resolution_Y)
 
         self.display = pygame.display.set_mode(self.screen_resolution)
-        pygame.display.set_caption("Game")
+        pygame.display.set_caption("Level Environment")
         self.clock = pygame.time.Clock()
         self.frame_count = 0
         self.grid = np.zeros([self.width, self.height], np.uint8)
@@ -605,40 +605,60 @@ class GameWorld(gym.Env):
                 else:
                     pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size, border_radius = 1)
 
-        pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
-        pygame.draw.rect(self.display, constants.COLOR_GREEN, rect= pygame.Rect(self.start_pos[0] * cell_draw_size, self.start_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
-        pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
+        # pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(self.player_pos[0] * cell_draw_size, self.player_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 8, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_GREEN, rect= pygame.Rect(self.start_pos[0] * cell_draw_size, self.start_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 6, border_radius = 1)
+        pygame.draw.rect(self.display, constants.COLOR_CYAN, rect= pygame.Rect(self.end_pos[0] * cell_draw_size, self.end_pos[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 6, border_radius = 1)
+
+        draw_border = False
+        if(draw_border):
+            for x in range(0, self.grid.shape[0]):
+                for y in range(0, self.grid.shape[1]):
+                        pygame.draw.rect(self.display, constants.COLOR_WHITE, rect= pygame.Rect((x * cell_draw_size), y * cell_draw_size, cell_draw_size, cell_draw_size), width= cell_draw_size // 20, border_radius = 1)
+
 
         # Render action mask placement
-        posX, posY = self.player_pos
-        cell_draw_size = constants.CELL_DRAW_SIZE
-        mask_to_draw = self.mask
-        pivotX, pivotY = (math.floor(mask_to_draw.shape[0] / 2), math.floor(mask_to_draw.shape[1] / 2))
-        for local_X in range(0, mask_to_draw.shape[0]):
-            for local_Y in range(0, mask_to_draw.shape[1]):
-                x, y = posX + local_X - pivotX, posY + local_Y - pivotY
-                pygame.draw.rect(self.display, constants.COLOR_BLUE, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 1, border_radius = 1)
+        # posX, posY = self.player_pos
+        # cell_draw_size = constants.CELL_DRAW_SIZE
+        # mask_to_draw = self.mask
+        # pivotX, pivotY = (math.floor(mask_to_draw.shape[0] / 2), math.floor(mask_to_draw.shape[1] / 2))
+        # for local_X in range(0, mask_to_draw.shape[0]):
+        #     for local_Y in range(0, mask_to_draw.shape[1]):
+        #         x, y = posX + local_X - pivotX, posY + local_Y - pivotY
+        #         pygame.draw.rect(self.display, constants.COLOR_BLUE, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 1)
 
-                color = constants.COLOR_BLACK
-                mask_value = mask_to_draw[local_X, local_Y]
+        #         color = constants.COLOR_BLACK
+        #         mask_value = mask_to_draw[local_X, local_Y]
                 
-                if(mask_value == constants.TILE_ACTION_IGNORE):
-                    color = constants.COLOR_BLACK
-                elif(mask_value == constants.TILE_ACTION_PLACE_EMPTY_SPACE):
-                    color = constants.COLOR_RED
-                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
-                elif(mask_value == constants.TILE_ACTION_PLACE_PLATFORM):
-                    color = constants.COLOR_BROWN
-                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
-                elif(mask_value == constants.TILE_ACTION_PLACE_LAVA):
-                    color = constants.COLOR_RED
-                    pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
-
-                
+        #         if(mask_value == constants.TILE_ACTION_IGNORE):
+        #             color = constants.COLOR_BLACK
+        #         elif(mask_value == constants.TILE_ACTION_PLACE_EMPTY_SPACE):
+        #             color = constants.COLOR_RED
+        #             pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 6)
+        #         elif(mask_value == constants.TILE_ACTION_PLACE_PLATFORM):
+        #             color = constants.COLOR_BROWN
+        #             pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 6)
+        #         elif(mask_value == constants.TILE_ACTION_PLACE_LAVA):
+        #             color = constants.COLOR_RED
+        #             pygame.draw.rect(self.display, color, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 6)
 
         for index, cell in enumerate(self.player_path):
             color = helper.lerp_color(constants.COLOR_GREEN, constants.COLOR_CYAN, (index + 1) / (len(self.player_path)))
             pygame.draw.rect(self.display, color, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 0)
+
+
+        # posX, posY = self.player_pos
+        # posX += 7
+        # pygame.draw.rect(self.display, constants.COLOR_PURPLE, rect= pygame.Rect(posX * cell_draw_size, posY * cell_draw_size, cell_draw_size, cell_draw_size), width= 8, border_radius = 1)
+        # cell_draw_size = constants.CELL_DRAW_SIZE
+        # mask_to_draw = self.mask
+        # pivotX, pivotY = (math.floor(mask_to_draw.shape[0] / 2), math.floor(mask_to_draw.shape[1] / 2))
+        # x, y = posX + 0 - pivotX, posY + 0 - pivotY
+        # pygame.draw.rect(self.display, constants.COLOR_BLUE, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size * 5, cell_draw_size * 5), width= 4, border_radius = 1)
+
+        # ctx_size = 15
+        # pivotX, pivotY = (math.floor(ctx_size / 2), math.floor(ctx_size / 2))
+        # x, y = posX + 0 - pivotX, posY + 0 - pivotY
+        # pygame.draw.rect(self.display, constants.COLOR_YELLOW, rect= pygame.Rect(x * cell_draw_size, y * cell_draw_size, cell_draw_size * ctx_size, cell_draw_size * ctx_size), width= 4, border_radius = 1)
 
         for cell in self.coverable_path:
             pygame.draw.rect(self.display, constants.COLOR_MAGENTA, rect= pygame.Rect(cell[0] * cell_draw_size, cell[1] * cell_draw_size, cell_draw_size, cell_draw_size), width= 2, border_radius = 8)
@@ -1018,305 +1038,6 @@ class GameWorld(gym.Env):
             current = next_cell
         
         return path
-    
-    def calculate_reachability_in_mask(self, path):
-        
-        def manhattan_distance(x1, y1, x2, y2):
-            return abs(x1 - x2) + abs(y1 - y2)
-        
-        # Check proximity for each player path cell
-        def within_distance(cell, max_dist):
-            return any(manhattan_distance(cell[0], cell[1], px, py) <= max_dist for px, py in path)
-        
-        def is_any_route_clear(cell, routes):
-            is_clear = False
-            for route in routes:
-                if(are_route_cells_clear(cell, route)):
-                    is_clear = True
-                    break
-            return is_clear
-        
-        def are_route_cells_clear(cell, directions):
-            for (dx, dy) in directions:
-                nx, ny = (cell[0] + dx, cell[1] + dy)
-                new_cell = (nx, ny)
-
-                if(not self.is_position_valid(new_cell)):
-                    return False
-
-                if(not (self.grid[new_cell] == constants.GRID_EMPTY_SPACE)):
-                    return False
-
-            return True
-  
-        def can_stand_on(cell):
-            below_cell = self.get_cell_in_direction(cell, direction=Direction.DOWN, restrict_boundary=False)
-            if(not self.is_position_valid(below_cell)):
-                return False
-            return (self.grid[cell] == constants.GRID_EMPTY_SPACE) and (self.grid[below_cell] == constants.GRID_PLATFORM)
-        
-        max_distance = 5
-
-        reachable_cells = set()
-
-        directions_and_routes = [
-            # ((-3, -3), [[]]), 
-            
-            ((-2, -3), [
-                [(0, -1), (0, -2), (0, -3), (-1, -3)]
-            ]), 
-            
-            ((-1, -3), [
-                [(0, -1), (0, -2), (0, -3)]
-            ]),
-            
-            # ((0, -3), [[]]), 
-            
-            ((1, -3), [
-                [(0, -1), (0, -2), (0, -3)]
-            ]),
-            
-            ((2, -3), [
-                [(0, -1), (0, -2), (0, -3), (1, -3)]
-            ]), 
-            
-            # ((3, -3), [[]]),
-            
-            # ((-3, -2), [[]]),
-            
-            ((-2, -2), [
-                [(0, -1), (0, -2), (0, -3), (-1, -3), (-2, -3)]
-            ]), 
-            
-            ((-1, -2), [
-                [(0, -1), (0, -2)]
-            ]), 
-            
-            # ((0, -2), [[]]), 
-            
-            
-            ((1, -2), [
-                [(0, -1), (0, -2)]
-            ]), 
-            
-            ((2, -2), [
-                [(0, -1), (0, -2), (0, -3), (1, -3), (2, -3)]
-            ]),
-            
-            # ((3, -2), [[]]),
-            # ((-3, -1), [[]]), 
-            
-            ((-2, -1), [
-                [(0, -1), (0, -2), (-1, -2), (-2, -2)]
-            ]), 
-            
-            ((-1, -1), [
-                [(0, -1)]
-            ]), 
-            
-            # ((0, -1), [[]]), 
-            
-            ((1, -1), [
-                [(0, -1)]
-            ]), 
-            
-            ((2, -1), [
-                [(0, -1), (0, -2), (1, -2), (2, -2)]
-            ]), 
-            
-            # ((3, -1), [[]]),
-            
-
-            ((-3,  0), [
-                [(0, -1), (-1, -1), (-1, -2), (-2, -2), (-2, -1), (-3, -1)]
-            ]), 
-            
-            ((-2,  0), [
-                [(0, -1), (-1, -1), (-2, -1)]
-            ]), 
-            
-            ((-1,  0), [[(-1, 0)]]), 
-            
-            ((0,  0), [[(0, 0)]]), 
-            
-            ((1,  0), [[(1, 0)]]), 
-            
-            ((2,  0), [
-                [(0, -1), (1, -1), (2, -1)]
-            ]), 
-            
-            ((3,  0), [
-                [(0, -1), (1, -1), (1, -2), (2, -2), (2, -1), (3, -1)]
-            ]),
-
-            # ((-3,  1), [[]]), 
-            
-            ((-2,  1), [
-                [(0, -1), (-1, -1), (-2, -1), (-2, 0)]
-            ]), 
-            
-            ((-1,  1), [
-                [(-1, 0)]
-            ]), 
-            
-            # ((0,  1), [[]]), 
-            
-            ((1,  1), [
-                [(1, 0)]
-            ]),
-            
-            ((2,  1), [
-                [(0, -1), (1, -1), (2, -1), (2, 0)]
-            ]), 
-            
-            # ((3,  1), [[]]),
-            # ((-3,  2), [[]]), 
-            
-            
-            ((-2,  2), [
-                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1)]
-            ]),
-            
-            ((-1,  2), [
-                [(-1, 0), (-1, 1)]
-            ]),
-             
-            # ((0,  2), [[]]), 
-            
-            ((1,  2), [
-                [(1, 0), (1, 1)]
-            ]), 
-            
-            ((2,  2), [
-                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1)]
-            ]),
-            
-            # ((3,  2), [[]]),
-            # ((-3,  3), [[]]), 
-            
-            ((-2,  3), [
-                [(0, -1), (-1, -1), (-2, -1), (-2, 0), (-2, 1), (-2, 2)]
-            ]), 
-            
-            ((-1,  3), [
-                [(-1, 0), (-1, 1), (-1, 2)]
-            ]), 
-            
-            # ((0,  3), [[]]), 
-            
-            ((1,  3), [
-                [(1, 0), (1, 1), (1, 2)]
-            ]),
-            
-            ((2,  3), [
-                [(0, -1), (1, -1), (2, -1), (2, 0), (2, 1), (2, 2)]
-            ]),
-            
-            # ((3,  3), [[]]),
-            ]
-
-        start_cell = path[0]
-        end_cell = path[-1]
-
-        if(self.grid[start_cell] != constants.GRID_EMPTY_SPACE):
-            return 0, list(reachable_cells), 0
-
-        if(not can_stand_on(start_cell)):
-            while(self.is_position_valid(start_cell) and within_distance(start_cell, max_distance)):
-                start_cell = self.get_cell_in_direction(cell=start_cell, direction=Direction.DOWN, restrict_boundary=False)
-                if(can_stand_on(start_cell)):
-                    break
-            
-            if((not self.is_position_valid(start_cell)) or (not can_stand_on(start_cell))):
-                # print(f"Invalid start cell {start_cell}")
-                return 0, list(reachable_cells), 0
-        
-        reachable_cells.add(start_cell)
-
-        # Priority queue for A* search
-        open_set = [(0, start_cell)]
-        g_score = {start_cell: 0}
-        heapq.heapify(open_set)
-    
-        while open_set:
-            _, current = heapq.heappop(open_set)
-            x, y = current
-            
-            for direction, routes in directions_and_routes:
-                dx, dy = direction
-                nx, ny = (x + dx, y + dy)
-                new_cell = (nx, ny)
-
-                if((new_cell == current) or (self.grid[current] == constants.GRID_PLATFORM) or (self.grid[current] == constants.GRID_LAVA)):
-                    continue
-
-                if(not (self.is_position_valid(new_cell) and within_distance(new_cell, 10))):
-                    continue
-                
-                if(not (can_stand_on(new_cell))):
-                   continue
-
-                if(not is_any_route_clear(current, routes)):
-                    continue
-
-                # print(f"Current : {current}, New cell : {new_cell}, Direction : {direction}, Route : {routes}")
-
-                if ((new_cell not in reachable_cells)):# or (g_score[new_cell] > (g_score[current] + 1))):
-                    g_score[new_cell] = g_score[current] + 1
-                    heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
-                    reachable_cells.add(new_cell)
-
-            for direction in [(-2, 2), (-1, 2), (1, 2), (2, 2)]:
-                nx, ny = (x + direction[0], y + direction[1])
-                new_cell = (nx, ny)
-
-                routes = []
-                found = False
-                for d, r in directions_and_routes:
-                    if(direction == d):
-                        routes = r
-                        found = True
-                        break
-                
-                if(not found):
-                    print("No route found!")
-                    break
-
-                if(not is_any_route_clear(current, routes)):
-                    continue
-                
-                # print(f"Current : {current}, direction : {direction}, routes : {routes}")
-
-                if(self.grid[new_cell] != constants.GRID_EMPTY_SPACE):
-                    continue
-
-                while(self.is_position_valid(new_cell) and within_distance(new_cell, max_distance)):
-                    if(can_stand_on(new_cell)):
-                        if ((new_cell not in reachable_cells)):# or (g_score[new_cell] > (g_score[current] + 1))):
-                            g_score[new_cell] = g_score[current] + 1
-                            heapq.heappush(open_set, (g_score[new_cell] + manhattan_distance(nx, ny, *start_cell), new_cell))
-                            reachable_cells.add(new_cell)             
-                        break
-                    else:
-                        new_cell = self.get_cell_in_direction(new_cell, direction=Direction.DOWN, restrict_boundary=False)
-
-                        if((not self.is_position_valid(new_cell)) or (self.grid[new_cell] != constants.GRID_EMPTY_SPACE)):
-                            break
-
-        # Find the highest index of a player path cell that is close to any reachable cell
-        highest_reached_index = -1
-        for reachable_cell in reachable_cells:
-                for direction, routes in directions_and_routes:
-                    new_cell = (reachable_cell[0] + direction[0], reachable_cell[1] + direction[1])
-                    if(new_cell in path):
-                        if(is_any_route_clear(reachable_cell, routes)):
-                            for i, path_cell in enumerate(path):
-                                if(path_cell == new_cell):
-                                    highest_reached_index = max(highest_reached_index, i)
-
-        # Calculate reachability percentage based on the highest reachable index
-        reachability_percentage = (highest_reached_index / (len(path) - 1)) if highest_reached_index >= 0 else 0
-        return reachability_percentage, list(reachable_cells), highest_reached_index
 
     def find_hanging_cells(self):
         """
@@ -1383,8 +1104,7 @@ class GameWorld(gym.Env):
                 break
 
         return is_hanging
-
-            
+  
     def get_cells_in_action_mask_region(self):
 
         cells_in_mask = []
@@ -1403,7 +1123,6 @@ class GameWorld(gym.Env):
         pygame.image.save(self.display, full_path)
         print(f"Saved image : {full_path}")
 
-    
     def export_level(self, base_directory = "./saves/train_levels/"):
         # Exporting valid levels.
         self.train_level_count += 1
