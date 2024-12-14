@@ -27,7 +27,7 @@ if(__name__ == "__main__"):
          
         solvable_count = 0
 
-        for r in results:
+        for r in results["levels"]:
              if(r["env_data"]["is_solvable"]):
                   solvable_count += 1
 

@@ -351,10 +351,13 @@ class GameWorld(gym.Env):
         if(not found):
             reward = -1
 
+        if(self.player_path[-1] in reachable_cells):
+            self.terminated = True
+
         if((is_furthest_cell_in_action_mask_reachable) or self.force_move_agent_forward):
             self.last_player_pos = self.player_pos
                 
-            if(self.player_path_index >= len(self.player_path) - 1):
+            if(self.player_path_index >= (len(self.player_path) - 1)):
                 self.terminated = True
 
             self.player_path_index = (self.player_path_index + 5)
@@ -403,8 +406,7 @@ class GameWorld(gym.Env):
         self.step_count += 1
 
         if(self.terminated):
-            reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
-            if(reachability >= 0.99):
+            if(self.player_path[-1] in reachable_cells):
                 self.export_level()
             else:
                 print("Terminated, but Level is not solvable!")
@@ -1137,16 +1139,16 @@ class GameWorld(gym.Env):
     
     def get_exportable_format(self):
     
-        reachability, _, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
+        reachability, reachable_cells, highest_reachable_path_index = self.calculate_reachability(max_distance=self.max_distance_from_path)
 
         data = { 
             "grid_size" : (self.width, self.height),
             "grid" : self.grid.tolist(),
             "player_path" : self.player_path,
-            "reachable_cells" : self.coverable_path,
+            "reachable_cells" : reachable_cells,
             "hanging_cells" : self.hanging_cells_in_grid,
             "reachability" : reachability,
-            "is_solvable" : reachability > 0.99
+            "is_solvable" : (self.player_path[-1] in self.coverable_path)
         }
 
         return data

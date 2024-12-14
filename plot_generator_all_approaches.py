@@ -35,7 +35,7 @@ if(__name__ == "__main__"):
         base_directory = f"./saves/visualizations/{approach_name}"
         os.makedirs(base_directory, exist_ok=True)
 
-        for r in results:
+        for r in results["levels"]:
 
             path_id = r["path_id"]
             path = r["path_data"]["path"]

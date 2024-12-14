@@ -71,6 +71,8 @@ def evaluate_model(model, export_directory):
         
         results.append(result)
 
+    results = {"levels" : results}
+
     results_file = os.path.join(export_directory, "results.json")
     with open(results_file, "w") as f:
             json.dump(results, f, indent=4)
@@ -116,7 +118,7 @@ if(__name__ == "__main__"):
     #         force_move_agent_forward=False
     #         )
     
-    for r in results:
+    for r in results["levels"]:
         if(r["env_data"]["is_solvable"]):
             solvable_count += 1
 
