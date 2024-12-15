@@ -351,7 +351,7 @@ class GameWorld(gym.Env):
         if(not found):
             reward = -1
 
-        if(self.player_path[-1] in reachable_cells):
+        if((self.player_path[-1] in reachable_cells) or (highest_reachable_path_index >= (len(self.player_path) - 1))):
             self.terminated = True
 
         if((is_furthest_cell_in_action_mask_reachable) or self.force_move_agent_forward):
@@ -979,7 +979,7 @@ class GameWorld(gym.Env):
                 for direction, routes in directions_and_routes:
                     new_cell = (reachable_cell[0] + direction[0], reachable_cell[1] + direction[1])
                     if(new_cell in player_path):
-                        if(is_any_route_clear(reachable_cell, routes)):
+                        if(self.grid[new_cell] == constants.GRID_EMPTY_SPACE and is_any_route_clear(reachable_cell, routes)):
                             for i, path_cell in enumerate(player_path):
                                 if(path_cell == new_cell):
                                     highest_reached_index = max(highest_reached_index, i)
@@ -1148,7 +1148,7 @@ class GameWorld(gym.Env):
             "reachable_cells" : reachable_cells,
             "hanging_cells" : self.hanging_cells_in_grid,
             "reachability" : reachability,
-            "is_solvable" : (self.player_path[-1] in self.coverable_path)
+            "is_solvable" : ((self.player_path[-1] in self.coverable_path) or highest_reachable_path_index >= (len(self.player_path) - 1))
         }
 
         return data
