@@ -17,3 +17,15 @@ This repository contains the source code for the project - Procedural Content Ge
 - The RL model achieved <b>52% solvability rate</b>, significantly outperforming random generation methods.
 - The exported levels were further evaluated by a Unity-based platformer game for human feedback.
 - All levels that were marked solvable by the algorithm were fully solvable and playable in the client game.
+
+
+!["path_complexities_and_solvabilities"](./saves/visualizations/Recurrent%20PPO%20(Proposed%20approach)/path_complexities.png)
+
+Following image shows a sample of the level generated.
+
+### Legend
+- Squares - Cells representing input player path (This path represents the approximate route the player in the actual game should follow).
+- Pink circles - All cells that are reachable by the player character.
+- Yellow circles - Hanging cells - Cells that are valid, by no path leading to it, thereby non-reachable.
+
+!["sample level"](./saves/evaluation/proposed_approach/test_path_77_img.png)
